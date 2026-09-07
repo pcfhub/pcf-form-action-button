@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Form Action Button — dev harness</title>
+
+        <!--
+            A local stand-in for a model-driven form, for the states `npm start`
+            cannot put a field control into.
+
+            Use `npm start` for the happy path — it is the better tool for
+            "does my control render". This page is for the branches that only a
+            real form reaches, and that therefore only a customer normally
+            finds:
+
+                - a form script that vetoes the press, goes busy, reports a
+                  failure, or never reports back at all
+                - the platform's confirmation dialog: confirmed, cancelled
+                  (which is a RESOLVE), refused, and absent
+                - a host with no `context.events` bag, where the button has to
+                  keep working through its outputs alone
+                - a privilege the user does not have, and the two hosts that
+                  cannot answer the question at all
+                - a host that publishes no theme, versus one that does
+                - right-to-left
+
+            It also shows what `getOutputs()` actually returns after every
+            interaction, and counts `notifyOutputChanged` calls — a control that
+            notifies on every render rather than on every change shows up here
+            as a counter that climbs on its own.
+
+            How to use it:
+
+                npm run build
+                npm run harness
+
+            No bundler and no new dependencies: `npm run harness` is
+            `dev/serve.js`, which is `node:http` and nothing else. It loads the bundle
+            `npm run build` already produced, and the same `dev/host.js` that
+            `npm run smoke` uses.
+
+            It opens over `file://`, which is why everything it needs is a
+            `<script src>` rather than a `fetch` — `fetch` is blocked there.
+
+            **This is a stand-in, not a form.** There is no Dataverse behind it,
+            no save, no business rules, and no other control on the page. A
+            state you can produce here is a state worth handling; a state that
+            works here has still only been seen in one browser with one set of
+            fixtures. See SPEC.md for what a real form still has to confirm.
+        -->
+
+        <link rel="stylesheet" href="../FormActionButton/css/FormActionButton.css" />
+        <style>
+            body {
+                margin: 0;
+                padding: 24px;
+                font-family: 'Segoe UI', system-ui, sans-serif;
+                font-size: 14px;
+                background: #faf9f8;
+                color: #323130;
+            }
+
+            h1 {
+                font-size: 18px;
+                margin: 0 0 4px;
+            }
+
+            .harness-note {
+                margin: 0 0 24px;
+                color: #605e5c;
+            }
+
+            .harness-controls {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+                gap: 12px 20px;
+                margin-bottom: 24px;
+                padding: 16px;
+                background: #fff;
+                border: 1px solid #edebe9;
+                border-radius: 4px;
+            }
+
+            .harness-controls label {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .harness-controls label.is-switch {
+                flex-direction: row;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .harness-controls span {
+                color: #605e5c;
+                font-size: 12px;
+            }
+
+            h2 {
+                font-size: 14px;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: #605e5c;
+                margin: 32px 0 8px;
+            }
+
+            /*
+                The form's own chrome around the control: a label above a
+                fixed-width column, which is the shape a model-driven form puts
+                a code component into. Getting the width roughly right is what
+                makes an overflowing control visible here rather than on a form.
+            */
+            .harness-form {
+                background: #fff;
+                border: 1px solid #edebe9;
+                border-radius: 4px;
+                padding: 20px;
+                max-width: 420px;
+            }
+
+            .harness-form.is-dark {
+                background: #1b1a19;
+                border-color: #3b3a39;
+            }
+
+            .harness-label {
+                display: block;
+                margin-bottom: 4px;
+                font-weight: 600;
+                color: #323130;
+            }
+
+            .harness-form.is-dark .harness-label {
+                color: #f3f2f1;
+            }
+
+            .harness-out {
+                margin: 0;
+                padding: 12px 16px;
+                background: #fff;
+                border: 1px solid #edebe9;
+                border-radius: 4px;
+                font-family: Consolas, 'Courier New', monospace;
+                font-size: 13px;
+                white-space: pre-wrap;
+            }
+
+            .harness-badge {
+                display: inline-block;
+                padding: 1px 8px;
+                border-radius: 10px;
+                background: #f3f2f1;
+                color: #605e5c;
+                font-size: 12px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <h1>Form Action Button — dev harness</h1>
+        <p class="harness-note">
+            A stand-in for a model-driven form. Run <code>npm run build</code>
+            first; reload after every build.
+        </p>
+
+        <div class="harness-controls">
+            <label>
+                Host
+                <select id="harness-host">
+                    <option value="model-driven">Model-driven form</option>
+                    <option value="canvas">Canvas app</option>
+                </select>
+                <span>Canvas publishes no theme and no column metadata.</span>
+            </label>
+
+            <label>
+                Label
+                <input type="text" id="harness-label" value="Approve" />
+                <span>Empty falls back to the localised default.</span>
+            </label>
+
+            <label>
+                Icon
+                <select id="harness-icon">
+                    <option value="none">None</option>
+                    <option value="send">Send</option>
+                    <option value="delete">Delete</option>
+                </select>
+            </label>
+
+            <label class="is-switch">
+                <input type="checkbox" id="harness-confirm" />
+                Confirm before acting
+            </label>
+
+            <label>
+                Confirmation message
+                <input type="text" id="harness-confirmtext" value="" />
+                <span>The dialog's body. Not the button's caption.</span>
+            </label>
+
+            <label>
+                Confirmation button
+                <input type="text" id="harness-confirmbutton" value="" />
+                <span>Also the caption while an inline confirmation is armed.</span>
+            </label>
+
+            <label class="is-switch">
+                <input type="checkbox" id="harness-writesignal" />
+                Write to the signal column
+            </label>
+
+            <label>
+                What the form script does
+                <select id="harness-handler">
+                    <option value="none">Nothing — just records the press</option>
+                    <option value="veto">preventDefault()</option>
+                    <option value="busy">setBusy(), then setResult after 2s</option>
+                    <option value="fail">setBusy(), then a failure after 2s</option>
+                    <option value="stall">setBusy() and never report back</option>
+                    <option value="throw">Throws</option>
+                </select>
+                <span>Stands in for a handler registered with
+                <code>addEventHandler("onAction", fn)</code>.</span>
+            </label>
+
+            <label class="is-switch">
+                <input type="checkbox" id="harness-events" checked />
+                context.events exists
+            </label>
+
+            <label>
+                Platform dialogs
+                <select id="harness-dialogs">
+                    <option value="confirmed">Confirmed</option>
+                    <option value="cancelled">Cancelled (resolves, not rejects)</option>
+                    <option value="rejected">Refused (rejects)</option>
+                    <option value="absent">Absent — the inline fallback</option>
+                </select>
+                <span>A cancel arrives through <code>then</code>, carrying
+                <code>confirmed: false</code>.</span>
+            </label>
+
+            <label>
+                Require a privilege
+                <select id="harness-requireprivilege">
+                    <option value="none">No check</option>
+                    <option value="create">Create</option>
+                    <option value="read">Read</option>
+                    <option value="write">Write</option>
+                    <option value="delete">Delete</option>
+                    <option value="append">Append</option>
+                    <option value="appendTo">Append to</option>
+                </select>
+                <span>Needs <code>utils</code> <em>and</em> a record identity;
+                without either the control does not gate.</span>
+            </label>
+
+            <label>
+                When the privilege is missing
+                <select id="harness-privilegedenied">
+                    <option value="disable">Disable it</option>
+                    <option value="hide">Hide it</option>
+                </select>
+            </label>
+
+            <label class="is-switch">
+                <input type="checkbox" id="harness-privilege" checked />
+                hasEntityPrivilege answers yes
+            </label>
+
+            <label class="is-switch">
+                <input type="checkbox" id="harness-utils" checked />
+                context.utils exists
+            </label>
+
+            <label>
+                Record identity
+                <select id="harness-identity">
+                    <option value="contextinfo">mode.contextInfo</option>
+                    <option value="none">None (canvas, and off a record)</option>
+                </select>
+                <span>Undocumented and untyped. Absent is a real host.</span>
+            </label>
+
+            <label class="is-switch">
+                <input type="checkbox" id="harness-navigation" checked />
+                context.navigation exists
+            </label>
+
+            <label class="is-switch">
+                <input type="checkbox" id="harness-disabled" />
+                Form read-only
+            </label>
+
+            <label class="is-switch">
+                <input type="checkbox" id="harness-visible" checked />
+                Visible
+            </label>
+
+            <label class="is-switch">
+                <input type="checkbox" id="harness-dark" />
+                Dark theme
+            </label>
+
+            <label class="is-switch">
+                <input type="checkbox" id="harness-rtl" />
+                Right-to-left
+            </label>
+
+            <label>
+                Form factor
+                <select id="harness-formfactor">
+                    <option value="desktop">Desktop (1)</option>
+                    <option value="tablet">Tablet (2)</option>
+                    <option value="phone">Phone (3)</option>
+                    <option value="unknown">Unknown (0)</option>
+                </select>
+                <span>Web is <code>1</code>; <code>3</code> is a phone.</span>
+            </label>
+
+            <label>
+                Allocated width
+                <input type="number" id="harness-width" value="-1" />
+                <span><code>-1</code> until the control calls
+                <code>trackContainerResize</code>.</span>
+            </label>
+
+            <label>
+                Signal column
+                <input type="text" id="harness-value" />
+                <span>What the bound column holds. Watch it stay put with
+                <em>Write to the signal column</em> off.</span>
+            </label>
+
+            <label class="is-switch">
+                <button type="button" id="harness-clear">Clear the column</button>
+            </label>
+
+            <label class="is-switch">
+                <button type="button" id="harness-rerender">updateView again</button>
+            </label>
+        </div>
+
+        <h2>What the form script saw <span class="harness-badge" id="harness-raised"></span></h2>
+        <pre class="harness-out" id="harness-payloads"></pre>
+
+        <h2>The control</h2>
+        <div class="harness-form" id="harness-form">
+            <span class="harness-label" id="harness-formlabel"></span>
+            <div id="harness-root"></div>
+        </div>
+
+        <h2>getOutputs() <span class="harness-badge" id="harness-notified"></span></h2>
+        <pre class="harness-out" id="harness-outputs"></pre>
+
+        <p class="harness-note" id="harness-status"></p>
+
+        <!--
+            host.js before the bundle: it installs the `registerControl` the
+            bundle calls the moment it loads, and there is nowhere to register
+            otherwise.
+        -->
+        <script src="host.js"></script>
+        <script src="harness.js"></script>
+        <script src="../out/controls/FormActionButton/bundle.js"></script>
+        <script>
+            window.__harnessStart();
+        </script>
+    </body>
+</html>

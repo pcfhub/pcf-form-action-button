@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "slug": "pcf-form-action-button",
+  "name": "Form Action Button",
+  "tagline": "A model-driven form button that raises an event a form script can handle, confirm and answer.",
+  "category": "utilities",
+  "tags": [
+    "model-driven",
+    "button",
+    "events",
+    "confirmation",
+    "client-api",
+    "accessible",
+    "no-react"
+  ],
+  "control": {
+    "namespace": "PCFHub",
+    "constructor": "FormActionButton",
+    "type": "field",
+    "framework": "standard",
+    "manifestPath": "FormActionButton/ControlManifest.Input.xml"
+  },
+  "links": {
+    "homepage": "https://github.com/pcfhub/pcf-form-action-button",
+    "support": "https://github.com/pcfhub/pcf-form-action-button/issues",
+    "license": "MIT"
+  },
+  "docs": {
+    "path": "docs"
+  },
+  "media": {
+    "logo": "media/logo.png",
+    "screenshots": [
+      "media/screenshot-armed.png",
+      "media/screenshot-busy.png",
+      "media/screenshot.png",
+      "media/screenshot-dark.png"
+    ]
+  },
+  "demo": {
+    "fidelity": "limited",
+    "bundle": "out/controls/FormActionButton/bundle.js",
+    "styles": [
+      "out/controls/FormActionButton/css/FormActionButton.css"
+    ],
+    "limitations": [
+      "There is no form script behind this demo. On a real form the press reaches a handler registered with addEventHandler(\"onAction\", fn), and that handler is the whole point of the control — here it reaches nothing, so what you are pressing is the button rather than the action.",
+      "The platform's confirmation dialog is not available here, so switching a confirmation on shows the control's inline two-step fallback instead of the modal a form would put in front of you. Both are real behaviour; only one of them is what you would see on a form.",
+      "The busy and result states cannot be reached from a preset. A handler drives them by calling setBusy() and setResult() back into the control, and there is no handler here to call them.",
+      "Privilege gating does nothing here. It needs context.utils and a record identity, and this harness publishes neither — which is the same reason the control declines to gate rather than hiding itself on such a host."
+    ],
+    "presets": [
+      {
+        "slug": "plain",
+        "name": "A plain button",
+        "description": "One press, one event. The default configuration, and the one most buttons want.",
+        "props": {
+          "label": "Approve",
+          "icon": "none",
+          "confirmRequired": false,
+          "confirmTitle": "",
+          "confirmText": "",
+          "confirmButtonLabel": "",
+          "writeSignal": false,
+          "requirePrivilege": "none",
+          "privilegeDenied": "disable"
+        },
+        "isDefault": true
+      },
+      {
+        "slug": "confirm-delete",
+        "name": "Confirmed, with a glyph",
+        "description": "On a form this opens the platform's own confirmation dialog. There is none here, so the control falls back to its inline two-step: the first press asks and turns the button red, the second acts. Press once and wait — it reverts after four seconds.",
+        "props": {
+          "label": "Delete record",
+          "icon": "delete",
+          "confirmRequired": true,
+          "confirmTitle": "Delete this record?",
+          "confirmText": "This cannot be undone.",
+          "confirmButtonLabel": "Delete permanently",
+          "writeSignal": false,
+          "requirePrivilege": "none",
+          "privilegeDenied": "disable"
+        }
+      },
+      {
+        "slug": "write-signal",
+        "name": "Writing the signal column",
+        "description": "Every press writes into the bound column, which is what lets a business rule or a workflow see it. Watch the outputs: the value changes on every press, because a column set to the same value twice fires no OnChange at all.",
+        "props": {
+          "label": "Send for approval",
+          "icon": "send",
+          "confirmRequired": false,
+          "confirmTitle": "",
+          "confirmText": "",
+          "confirmButtonLabel": "",
+          "writeSignal": true,
+          "requirePrivilege": "none",
+          "privilegeDenied": "disable"
+        }
+      },
+      {
+        "slug": "long-label",
+        "name": "A long label, confirmed",
+        "description": "The button wraps rather than overflowing, and does not change size between its two labels — the layout a narrow form column actually produces.",
+        "props": {
+          "label": "Submit this expense report for approval",
+          "icon": "none",
+          "confirmRequired": true,
+          "confirmTitle": "",
+          "confirmText": "",
+          "confirmButtonLabel": "Confirm submission",
+          "writeSignal": false,
+          "requirePrivilege": "none",
+          "privilegeDenied": "disable"
+        }
+      }
+    ]
+  }
+}

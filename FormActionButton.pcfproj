@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PowerAppsTargetsPath>$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\PowerApps</PowerAppsTargetsPath>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" />
+  <Import Project="$(PowerAppsTargetsPath)\Microsoft.PowerApps.VisualStudio.Pcf.props" Condition="Exists('$(PowerAppsTargetsPath)\Microsoft.PowerApps.VisualStudio.Pcf.props')" />
+
+  <PropertyGroup>
+    <Name>pcf-form-action-button</Name>
+    <ProjectGuid>44e80739-08d3-4a9d-98c9-aad642e222d3</ProjectGuid>
+    <OutputPath>$(MSBuildThisFileDirectory)out\controls</OutputPath>
+    <!-- production, not debug: the bundle that ships is the one CI packs. -->
+    <PcfBuildMode>production</PcfBuildMode>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
+    <TargetFramework>net462</TargetFramework>
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.PowerApps.MSBuild.Pcf" Version="1.*" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ExcludeDirectories Include="$(MSBuildThisFileDirectory)\.git\**" />
+    <ExcludeDirectories Include="$(MSBuildThisFileDirectory)\.github\**" />
+    <ExcludeDirectories Include="$(MSBuildThisFileDirectory)\.gitignore" />
+    <ExcludeDirectories Include="$(MSBuildThisFileDirectory)\bin\**" />
+    <!--
+      Every entry in this list is tidiness, not protection — including this one.
+
+      It is easy to read a `demo`-free solution zip as this line doing its job.
+      It is not: the pack takes `out/controls/<Control>/**` plus the solution
+      XMLs and never looks at loose project files, so `demo/`, `docs/`, `media/`
+      and `scripts/` stay out of the zip whether or not they are named here.
+      Measured both ways on `pcf-compact-list` — 8 files in the zip with this
+      line, 8 without — and confirmed against `pcf-tag-list`, which has a
+      fixture, has never carried the line, and packs no fixture.
+
+      So do not cite this list as the reason something is not shipping, and do
+      not treat a repository missing an entry as a repository shipping dead
+      weight. What it actually does is keep the msbuild project's item list to
+      the files the project is about.
+    -->
+    <ExcludeDirectories Include="$(MSBuildThisFileDirectory)\demo\**" />
+    <ExcludeDirectories Include="$(MSBuildThisFileDirectory)\docs\**" />
+    <ExcludeDirectories Include="$(MSBuildThisFileDirectory)\media\**" />
+    <ExcludeDirectories Include="$(MSBuildThisFileDirectory)\node_modules\**" />
+    <ExcludeDirectories Include="$(MSBuildThisFileDirectory)\obj\**" />
+    <ExcludeDirectories Include="$(MSBuildThisFileDirectory)\scripts\**" />
+    <ExcludeDirectories Include="$(OutputPath)\**" />
+    <ExcludeDirectories Include="$(MSBuildThisFileDirectory)\*.pcfproj" />
+    <ExcludeDirectories Include="$(MSBuildThisFileDirectory)\*.pcfproj.user" />
+    <ExcludeDirectories Include="$(MSBuildThisFileDirectory)\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)\**" Exclude="@(ExcludeDirectories)" />
+  </ItemGroup>
+
+  <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
+  <Import Project="$(PowerAppsTargetsPath)\Microsoft.PowerApps.VisualStudio.Pcf.targets" Condition="Exists('$(PowerAppsTargetsPath)\Microsoft.PowerApps.VisualStudio.Pcf.targets')" />
+
+</Project>

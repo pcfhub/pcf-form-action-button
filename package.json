@@ -1,0 +1,30 @@
+{
+  "name": "pcf-form-action-button",
+  "version": "0.1.0",
+  "description": "A model-driven form button that raises an event a form script can handle, confirm and answer.",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "adopt": "node scripts/adopt.mjs",
+    "check": "node scripts/check-template.mjs",
+    "build": "pcf-scripts build",
+    "clean": "pcf-scripts clean",
+    "rebuild": "pcf-scripts rebuild",
+    "start": "pcf-scripts start",
+    "refreshTypes": "pcf-scripts refreshTypes",
+    "smoke": "node dev/smoke.js",
+    "harness": "node dev/serve.js",
+    "lint": "eslint FormActionButton --ext .ts,.tsx"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/powerapps-component-framework": "^1.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "pcf-scripts": "^1",
+    "pcf-start": "^1",
+    "typescript": "^5.3.3"
+  }
+}

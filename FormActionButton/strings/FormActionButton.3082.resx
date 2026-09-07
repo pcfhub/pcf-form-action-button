@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    Display names and descriptions for everything declared in
+    ControlManifest.Input.xml. PCFHub reads the manifest, so these strings are
+    what appear in the component's API reference on the hub as well as in the
+    maker's properties pane.
+
+    Copy this file to add a language — FormActionButton.3082.resx for Spanish, and so
+    on — then list it under <resources> in the manifest.
+  -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="FormActionButton_Name" xml:space="preserve">
+    <value>Botón de acción de formulario</value>
+  </data>
+  <data name="FormActionButton_Desc" xml:space="preserve">
+    <value>Un botón para formularios basados en modelos que genera un evento que un script de formulario puede gestionar, confirmar y responder.</value>
+  </data>
+  <data name="signal_Name" xml:space="preserve">
+    <value>Columna de señal</value>
+  </data>
+  <data name="signal_Desc" xml:space="preserve">
+    <value>La columna en la que se coloca el botón. No se escribe salvo que Escribir en la columna de señal esté activado.</value>
+  </data>
+  <data name="label_Name" xml:space="preserve">
+    <value>Etiqueta</value>
+  </data>
+  <data name="label_Desc" xml:space="preserve">
+    <value>El texto del botón, que es también su nombre accesible.</value>
+  </data>
+  <data name="icon_Name" xml:space="preserve">
+    <value>Icono</value>
+  </data>
+  <data name="icon_Desc" xml:space="preserve">
+    <value>Un glifo opcional que se muestra antes de la etiqueta.</value>
+  </data>
+  <data name="icon_None" xml:space="preserve">
+    <value>Ninguno</value>
+  </data>
+  <data name="icon_Send" xml:space="preserve">
+    <value>Enviar</value>
+  </data>
+  <data name="icon_Delete" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="confirmRequired_Name" xml:space="preserve">
+    <value>Confirmar antes de actuar</value>
+  </data>
+  <data name="confirmRequired_Desc" xml:space="preserve">
+    <value>Pide confirmación al usuario antes de generar el evento.</value>
+  </data>
+  <data name="confirmTitle_Name" xml:space="preserve">
+    <value>Título de la confirmación</value>
+  </data>
+  <data name="confirmTitle_Desc" xml:space="preserve">
+    <value>El título del cuadro de diálogo de confirmación. Déjalo vacío para usar el predeterminado.</value>
+  </data>
+  <data name="confirmText_Name" xml:space="preserve">
+    <value>Mensaje de confirmación</value>
+  </data>
+  <data name="confirmText_Desc" xml:space="preserve">
+    <value>La pregunta que plantea el cuadro de diálogo. Déjalo vacío para usar el predeterminado.</value>
+  </data>
+  <data name="confirmButtonLabel_Name" xml:space="preserve">
+    <value>Botón de confirmación</value>
+  </data>
+  <data name="confirmButtonLabel_Desc" xml:space="preserve">
+    <value>La palabra afirmativa. Se usa en el diálogo y como texto del botón mientras hay una confirmación en línea activa.</value>
+  </data>
+  <data name="writeSignal_Name" xml:space="preserve">
+    <value>Escribir en la columna de señal</value>
+  </data>
+  <data name="writeSignal_Desc" xml:space="preserve">
+    <value>Escribe cada pulsación en la columna enlazada, para que su controlador OnChange y las reglas de negocio la vean.</value>
+  </data>
+  <data name="requirePrivilege_Name" xml:space="preserve">
+    <value>Exigir un privilegio</value>
+  </data>
+  <data name="requirePrivilege_Desc" xml:space="preserve">
+    <value>Comprueba el privilegio del usuario sobre esta tabla antes de permitir pulsar el botón.</value>
+  </data>
+  <data name="privilege_None" xml:space="preserve">
+    <value>Sin comprobación</value>
+  </data>
+  <data name="privilege_Create" xml:space="preserve">
+    <value>Crear</value>
+  </data>
+  <data name="privilege_Read" xml:space="preserve">
+    <value>Leer</value>
+  </data>
+  <data name="privilege_Write" xml:space="preserve">
+    <value>Escribir</value>
+  </data>
+  <data name="privilege_Delete" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="privilege_Append" xml:space="preserve">
+    <value>Anexar</value>
+  </data>
+  <data name="privilege_AppendTo" xml:space="preserve">
+    <value>Anexar a</value>
+  </data>
+  <data name="privilegeDenied_Name" xml:space="preserve">
+    <value>Cuando falta el privilegio</value>
+  </data>
+  <data name="privilegeDenied_Desc" xml:space="preserve">
+    <value>Si se deshabilita el botón o se oculta por completo.</value>
+  </data>
+  <data name="denied_Disable" xml:space="preserve">
+    <value>Deshabilitarlo</value>
+  </data>
+  <data name="denied_Hide" xml:space="preserve">
+    <value>Ocultarlo</value>
+  </data>
+  <data name="pressCount_Name" xml:space="preserve">
+    <value>Número de pulsaciones</value>
+  </data>
+  <data name="pressCount_Desc" xml:space="preserve">
+    <value>Cuántas veces ha generado el botón su evento. Aumenta en cada generación, de modo que una repetición es observable.</value>
+  </data>
+  <data name="lastAction_Name" xml:space="preserve">
+    <value>Última acción</value>
+  </data>
+  <data name="lastAction_Desc" xml:space="preserve">
+    <value>Es «press» o «confirm», según si la pulsación se confirmó.</value>
+  </data>
+  <data name="onAction_Name" xml:space="preserve">
+    <value>Al ejecutar la acción</value>
+  </data>
+  <data name="onAction_Desc" xml:space="preserve">
+    <value>Se genera al pulsar el botón y tras cualquier confirmación. Un script de formulario se enlaza con addEventHandler("onAction", fn).</value>
+  </data>
+  <data name="FormActionButton_DefaultLabel" xml:space="preserve">
+    <value>Enviar</value>
+  </data>
+  <data name="FormActionButton_ConfirmTitle" xml:space="preserve">
+    <value>Confirmar</value>
+  </data>
+  <data name="FormActionButton_ConfirmText" xml:space="preserve">
+    <value>¿Seguro que quieres continuar?</value>
+  </data>
+  <data name="FormActionButton_ConfirmButton" xml:space="preserve">
+    <value>Confirmar</value>
+  </data>
+  <data name="FormActionButton_Armed" xml:space="preserve">
+    <value>Pulsa de nuevo para confirmar, o pulsa Escape para cancelar.</value>
+  </data>
+  <data name="FormActionButton_Cancelled" xml:space="preserve">
+    <value>Cancelado.</value>
+  </data>
+  <data name="FormActionButton_TimedOut" xml:space="preserve">
+    <value>La confirmación ha caducado.</value>
+  </data>
+  <data name="FormActionButton_Busy" xml:space="preserve">
+    <value>Trabajando…</value>
+  </data>
+  <data name="FormActionButton_Done" xml:space="preserve">
+    <value>Hecho.</value>
+  </data>
+  <data name="FormActionButton_Failed" xml:space="preserve">
+    <value>La acción no se ha completado.</value>
+  </data>
+  <data name="FormActionButton_Stalled" xml:space="preserve">
+    <value>La acción nunca respondió, así que se ha liberado el botón.</value>
+  </data>
+  <data name="FormActionButton_NoPrivilege" xml:space="preserve">
+    <value>No tienes permiso para hacer esto.</value>
+  </data>
+</root>

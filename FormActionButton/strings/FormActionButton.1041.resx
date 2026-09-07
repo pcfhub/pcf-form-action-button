@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    Display names and descriptions for everything declared in
+    ControlManifest.Input.xml. PCFHub reads the manifest, so these strings are
+    what appear in the component's API reference on the hub as well as in the
+    maker's properties pane.
+
+    Copy this file to add a language — FormActionButton.3082.resx for Spanish, and so
+    on — then list it under <resources> in the manifest.
+  -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="FormActionButton_Name" xml:space="preserve">
+    <value>フォーム操作ボタン</value>
+  </data>
+  <data name="FormActionButton_Desc" xml:space="preserve">
+    <value>フォーム スクリプトが処理、確認、応答できるイベントを発生させる、モデル駆動型フォーム用のボタンです。</value>
+  </data>
+  <data name="signal_Name" xml:space="preserve">
+    <value>シグナル列</value>
+  </data>
+  <data name="signal_Desc" xml:space="preserve">
+    <value>ボタンを配置する列です。[シグナル列に書き込む] が有効な場合を除き、書き込まれません。</value>
+  </data>
+  <data name="label_Name" xml:space="preserve">
+    <value>ラベル</value>
+  </data>
+  <data name="label_Desc" xml:space="preserve">
+    <value>ボタンに表示するテキストで、アクセシブル名も兼ねます。</value>
+  </data>
+  <data name="icon_Name" xml:space="preserve">
+    <value>アイコン</value>
+  </data>
+  <data name="icon_Desc" xml:space="preserve">
+    <value>ラベルの前に表示する任意のグリフです。</value>
+  </data>
+  <data name="icon_None" xml:space="preserve">
+    <value>なし</value>
+  </data>
+  <data name="icon_Send" xml:space="preserve">
+    <value>送信</value>
+  </data>
+  <data name="icon_Delete" xml:space="preserve">
+    <value>削除</value>
+  </data>
+  <data name="confirmRequired_Name" xml:space="preserve">
+    <value>実行前に確認する</value>
+  </data>
+  <data name="confirmRequired_Desc" xml:space="preserve">
+    <value>イベントを発生させる前にユーザーに確認します。</value>
+  </data>
+  <data name="confirmTitle_Name" xml:space="preserve">
+    <value>確認のタイトル</value>
+  </data>
+  <data name="confirmTitle_Desc" xml:space="preserve">
+    <value>確認ダイアログのタイトルです。空にすると既定値が使われます。</value>
+  </data>
+  <data name="confirmText_Name" xml:space="preserve">
+    <value>確認メッセージ</value>
+  </data>
+  <data name="confirmText_Desc" xml:space="preserve">
+    <value>確認ダイアログで尋ねる内容です。空にすると既定値が使われます。</value>
+  </data>
+  <data name="confirmButtonLabel_Name" xml:space="preserve">
+    <value>確認ボタン</value>
+  </data>
+  <data name="confirmButtonLabel_Desc" xml:space="preserve">
+    <value>肯定を表す語です。ダイアログで使われるほか、インライン確認中はボタンの文言になります。</value>
+  </data>
+  <data name="writeSignal_Name" xml:space="preserve">
+    <value>シグナル列に書き込む</value>
+  </data>
+  <data name="writeSignal_Desc" xml:space="preserve">
+    <value>押下のたびにバインドされた列へ書き込み、その OnChange ハンドラーやビジネス ルールから見えるようにします。</value>
+  </data>
+  <data name="requirePrivilege_Name" xml:space="preserve">
+    <value>必要な特権</value>
+  </data>
+  <data name="requirePrivilege_Desc" xml:space="preserve">
+    <value>ボタンを押せるようにする前に、このテーブルに対するユーザーの特権を確認します。</value>
+  </data>
+  <data name="privilege_None" xml:space="preserve">
+    <value>確認しない</value>
+  </data>
+  <data name="privilege_Create" xml:space="preserve">
+    <value>作成</value>
+  </data>
+  <data name="privilege_Read" xml:space="preserve">
+    <value>読み取り</value>
+  </data>
+  <data name="privilege_Write" xml:space="preserve">
+    <value>書き込み</value>
+  </data>
+  <data name="privilege_Delete" xml:space="preserve">
+    <value>削除</value>
+  </data>
+  <data name="privilege_Append" xml:space="preserve">
+    <value>追加</value>
+  </data>
+  <data name="privilege_AppendTo" xml:space="preserve">
+    <value>追加先</value>
+  </data>
+  <data name="privilegeDenied_Name" xml:space="preserve">
+    <value>特権がない場合</value>
+  </data>
+  <data name="privilegeDenied_Desc" xml:space="preserve">
+    <value>ボタンを無効にするか、完全に非表示にするかを指定します。</value>
+  </data>
+  <data name="denied_Disable" xml:space="preserve">
+    <value>無効にする</value>
+  </data>
+  <data name="denied_Hide" xml:space="preserve">
+    <value>非表示にする</value>
+  </data>
+  <data name="pressCount_Name" xml:space="preserve">
+    <value>押下回数</value>
+  </data>
+  <data name="pressCount_Desc" xml:space="preserve">
+    <value>ボタンがイベントを発生させた回数です。発生のたびに増えるため、繰り返しを検知できます。</value>
+  </data>
+  <data name="lastAction_Name" xml:space="preserve">
+    <value>最後の操作</value>
+  </data>
+  <data name="lastAction_Desc" xml:space="preserve">
+    <value>押下が確認されたかどうかに応じて "press" または "confirm" になります。</value>
+  </data>
+  <data name="onAction_Name" xml:space="preserve">
+    <value>アクション時</value>
+  </data>
+  <data name="onAction_Desc" xml:space="preserve">
+    <value>ボタンが押され、必要な確認が済んだときに発生します。フォーム スクリプトは addEventHandler("onAction", fn) でバインドします。</value>
+  </data>
+  <data name="FormActionButton_DefaultLabel" xml:space="preserve">
+    <value>送信</value>
+  </data>
+  <data name="FormActionButton_ConfirmTitle" xml:space="preserve">
+    <value>確認</value>
+  </data>
+  <data name="FormActionButton_ConfirmText" xml:space="preserve">
+    <value>実行してよろしいですか?</value>
+  </data>
+  <data name="FormActionButton_ConfirmButton" xml:space="preserve">
+    <value>確認</value>
+  </data>
+  <data name="FormActionButton_Armed" xml:space="preserve">
+    <value>もう一度押すと確定します。Esc キーで取り消せます。</value>
+  </data>
+  <data name="FormActionButton_Cancelled" xml:space="preserve">
+    <value>取り消しました。</value>
+  </data>
+  <data name="FormActionButton_TimedOut" xml:space="preserve">
+    <value>確認の有効期限が切れました。</value>
+  </data>
+  <data name="FormActionButton_Busy" xml:space="preserve">
+    <value>処理中…</value>
+  </data>
+  <data name="FormActionButton_Done" xml:space="preserve">
+    <value>完了しました。</value>
+  </data>
+  <data name="FormActionButton_Failed" xml:space="preserve">
+    <value>操作は完了しませんでした。</value>
+  </data>
+  <data name="FormActionButton_Stalled" xml:space="preserve">
+    <value>操作から応答がなかったため、ボタンを解放しました。</value>
+  </data>
+  <data name="FormActionButton_NoPrivilege" xml:space="preserve">
+    <value>この操作を行う権限がありません。</value>
+  </data>
+</root>

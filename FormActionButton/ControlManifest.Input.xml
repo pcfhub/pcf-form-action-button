@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<manifest>
+  <!--
+    The version here is what the Power Platform upgrades on, and the release
+    workflow refuses to publish a tag that disagrees with it. Bump this,
+    Solution/src/Other/Solution.xml and package.json in the same commit.
+  -->
+  <control namespace="PCFHub"
+           constructor="FormActionButton"
+           version="0.1.0"
+           display-name-key="FormActionButton_Name"
+           description-key="FormActionButton_Desc"
+           control-type="standard">
+
+    <!--
+      Nothing here talks to a third party. The control raises an event, asks the
+      platform's own dialog, and reads a privilege; every one of those is the
+      host's own machinery. Premium is a cost the installer's users pay, and
+      this control does not earn it.
+    -->
+    <external-service-usage enabled="false" />
+
+    <!--
+      THE ANCHOR, AND THE REASON THIS CONTROL CAN EXIST ON A FORM AT ALL.
+
+      A model-driven form hosts a field component *on a column*, so a button
+      with nothing bound cannot be placed on one — which is precisely why
+      pcf-action-button, which binds nothing, is canvas-only. This control binds
+      one column so that a maker has somewhere to put it.
+
+      **It is not written unless `writeSignal` is on.** Out of the box the
+      control reads this property and never returns a value for it, so binding
+      it to a live business column is safe: `getOutputs()` returns `undefined`
+      for `signal`, and `undefined` means *no change*. Everywhere else in this
+      catalogue that `undefined` is the bug; here it is the whole guarantee, and
+      index.ts says so at the return.
+
+      Bind a column that exists for this. A maker who wants the write channel
+      should either add a dedicated text column or call
+      `formContext.getAttribute("<column>").setSubmitMode("never")` in the same
+      OnLoad script that registers the handler, so a press never dirties the
+      record. docs/installation.md gives both lines.
+
+      `required="false"`: the control has a complete job — raising the event —
+      with an empty column, and a `required="true"` bound property is a
+      validation error on a record nobody meant to make invalid.
+    -->
+    <property name="signal"
+              display-name-key="signal_Name"
+              description-key="signal_Desc"
+              of-type="SingleLine.Text"
+              usage="bound"
+              required="false" />
+
+    <!--
+      The button's text, and therefore its accessible name — index.ts
+      deliberately sets no `aria-label`, so there is nothing that can disagree
+      with what the button visibly says.
+
+      No `pfx-default-value` on this control, unlike its canvas sibling.
+      `pfx-default-value` is a Power Fx expression and Power Fx is a canvas
+      surface; a form's properties pane has no formula bar to put one in, so it
+      would be an attribute nothing on the supported host ever reads.
+    -->
+    <property name="label"
+              display-name-key="label_Name"
+              description-key="label_Desc"
+              of-type="SingleLine.Text"
+              usage="input"
+              required="false"
+              default-value="Submit" />
+
+    <!--
+      Enum rather than free text, so `refreshTypes` turns the values into a real
+      string union and a typo is a compile error rather than a button with no
+      glyph.
+
+      TWO GLYPHS AND AN OFF SWITCH, and the smallness is the decision. Each
+      glyph is path data this repository then owns forever, and an icon that
+      does not name the action is decoration — only the maker knows what the
+      button does. Send and delete are the two actions a confirm button is
+      overwhelmingly used for. Anything else belongs in `label`, as words.
+    -->
+    <property name="icon"
+              display-name-key="icon_Name"
+              description-key="icon_Desc"
+              of-type="Enum"
+              usage="input"
+              required="false"
+              default-value="none">
+      <value name="none" display-name-key="icon_None">none</value>
+      <value name="send" display-name-key="icon_Send">send</value>
+      <value name="delete" display-name-key="icon_Delete">delete</value>
+    </property>
+
+    <!--
+      Off by default, because a button that asks twice by default is a
+      surprising button.
+
+      Note what that costs. A `default-value="false"` reaches PCFHub's demo
+      harness as the raw XML *string* "false", and `Boolean("false")` is `true`
+      — so the property arrives switched ON on the one surface the public sees.
+      index.ts reads every TwoOptions through `asBoolean` rather than trusting
+      `raw`, and every preset in pcfhub.json sets it explicitly.
+    -->
+    <property name="confirmRequired"
+              display-name-key="confirmRequired_Name"
+              description-key="confirmRequired_Desc"
+              of-type="TwoOptions"
+              usage="input"
+              required="false"
+              default-value="false" />
+
+    <!--
+      The three confirmation strings, all empty by default and all falling back
+      to the localised text in the .resx. A maker who wants "Delete
+      permanently?" says so; a maker who says nothing gets their own language
+      rather than an English literal compiled into the bundle.
+
+      `confirmTitle` and `confirmText` are the platform dialog's title and body.
+      `confirmButtonLabel` does double duty and that is deliberate: it is the
+      dialog's affirmative button AND the caption the button wears while an
+      inline confirmation is armed. The two channels then say the same word for
+      the same decision, and a long body sentence never has to fit on a button.
+    -->
+    <property name="confirmTitle"
+              display-name-key="confirmTitle_Name"
+              description-key="confirmTitle_Desc"
+              of-type="SingleLine.Text"
+              usage="input"
+              required="false"
+              default-value="" />
+
+    <property name="confirmText"
+              display-name-key="confirmText_Name"
+              description-key="confirmText_Desc"
+              of-type="SingleLine.Text"
+              usage="input"
+              required="false"
+              default-value="" />
+
+    <property name="confirmButtonLabel"
+              display-name-key="confirmButtonLabel_Name"
+              description-key="confirmButtonLabel_Desc"
+              of-type="SingleLine.Text"
+              usage="input"
+              required="false"
+              default-value="" />
+
+    <!--
+      Opting into the third channel — writing the bound column, so the column's
+      own OnChange handler, a business rule or a real-time workflow sees the
+      press.
+
+      Off by default because the alternative is destructive: a maker who binds
+      this control to a live column and gets a write on every press has a
+      control that edits business data as a side effect of being pressed. The
+      two event channels work with this off, so the safe default is also the
+      complete one.
+
+      A `showX` name is correct here for the same reason it is correct on
+      pcf-row-commands' `showDelete`: the platform's `false` is already the
+      answer almost everybody wants, so inverting the name would put a
+      data-writing behaviour behind a double negative.
+    -->
+    <property name="writeSignal"
+              display-name-key="writeSignal_Name"
+              description-key="writeSignal_Desc"
+              of-type="TwoOptions"
+              usage="input"
+              required="false"
+              default-value="false" />
+
+    <!--
+      Gate the button on a table privilege the current user either has or does
+      not.
+
+      `context.utils.hasEntityPrivilege` is **synchronous** and answers about
+      the user's security roles, so this is the one branch in the control that
+      only a differently-privileged user ever reaches. The values map to the
+      platform's numeric `PrivilegeType` in index.ts; they are named here so a
+      maker picks from a list rather than typing a number.
+
+      `none` is the default and means the control asks nothing. Where the maker
+      does ask and the host cannot answer — canvas has no `context.utils`, and a
+      form off a record has no `contextInfo` to name the table — the control
+      **does not gate**. A button that hides itself because it could not ask is
+      worse than one that lets the server refuse, because the second failure
+      says something and the first says nothing.
+    -->
+    <property name="requirePrivilege"
+              display-name-key="requirePrivilege_Name"
+              description-key="requirePrivilege_Desc"
+              of-type="Enum"
+              usage="input"
+              required="false"
+              default-value="none">
+      <value name="none" display-name-key="privilege_None">none</value>
+      <value name="create" display-name-key="privilege_Create">create</value>
+      <value name="read" display-name-key="privilege_Read">read</value>
+      <value name="write" display-name-key="privilege_Write">write</value>
+      <value name="delete" display-name-key="privilege_Delete">delete</value>
+      <value name="append" display-name-key="privilege_Append">append</value>
+      <value name="appendTo" display-name-key="privilege_AppendTo">appendTo</value>
+    </property>
+
+    <!--
+      What a failed privilege check does. Disabled by default: a button the user
+      can see and cannot press tells them the action exists and is not theirs,
+      which is usually the more useful of the two answers. `hide` is there for
+      the case where the affordance itself is confidential.
+    -->
+    <property name="privilegeDenied"
+              display-name-key="privilegeDenied_Name"
+              description-key="privilegeDenied_Desc"
+              of-type="Enum"
+              usage="input"
+              required="false"
+              default-value="disable">
+      <value name="disable" display-name-key="denied_Disable">disable</value>
+      <value name="hide" display-name-key="denied_Hide">hide</value>
+    </property>
+
+    <!--
+      TWO OUTPUTS FOR ONE BUTTON, AND THE SECOND ONE IS NOT REDUNDANT.
+
+      A model-driven form script reads these two ways: `control.getOutputs()`
+      after `control.addOnOutputChange(handler)`, and — where `writeSignal` is
+      on — the bound column's own OnChange. Both fire on a *change*, not on a
+      write. Two consecutive confirmed presses both setting lastAction
+      "confirm" are one change and one silence, and the maker sees a button that
+      works once.
+
+      `pressCount` is what makes a repeat observable. It increments only on a
+      press that actually raises, so the arming press of an inline confirmation
+      and a cancelled dialog do not count, and it never resets within an
+      instance — see docs/limitations.md.
+    -->
+    <property name="pressCount"
+              display-name-key="pressCount_Name"
+              description-key="pressCount_Desc"
+              of-type="Whole.None"
+              usage="output" />
+
+    <property name="lastAction"
+              display-name-key="lastAction_Name"
+              description-key="lastAction_Desc"
+              of-type="SingleLine.Text"
+              usage="output" />
+
+    <!--
+      A CUSTOM `<event>`, AND THE NAME IS THE API.
+
+      This is the channel the control exists for. A form script binds to it
+      with the Client API:
+
+          formContext.getControl("<column>").addEventHandler("onAction", fn);
+
+      and `fn` receives the payload index.ts builds — the facts of the press,
+      plus `preventDefault`, `setBusy` and `setResult`, which call back into the
+      control. docs/model-driven.md is the contract.
+
+      `<event>` rather than `<common-event name="OnSelect">`, and the difference
+      is not cosmetic. Read out of pcf-scripts@1.51.1 rather than out of the
+      docs:
+
+        - `commonEventAttribs` in ManifestSchema.json accepts ONLY `name` — an
+          enum of exactly OnSelect and OnChange — and `pfx-default-value`.
+        - `eventAttribs`, the custom element, also takes display-name-key,
+          description-key and hidden.
+        - manifestSchemaValidator.js's `validateEventNodes` rejects a custom
+          <event> named OnSelect or OnChange, case-insensitively.
+        - Both are gated on the feature flag `pcfAllowEvents`, "on" in
+          pcf-scripts' own featureflags.json.
+
+      But the decisive reason is the consumer, not the schema: `addEventHandler`
+      binds **by the event's own name**, so only a name this manifest chooses is
+      a name a form script can reach. OnSelect is the canvas maker's word for
+      the same gesture and is what pcf-action-button declares; here it would be
+      a reserved name pointing at a host this control does not support.
+
+      Microsoft's `event` element reference states "Available for: Canvas and
+      model-driven apps". Only the summary table on the manifest-schema index
+      says canvas alone, and the tutorial that binds one with addEventHandler
+      contradicts it. That is still preview documentation — see
+      docs/limitations.md and SPEC.md, *Not verified*.
+
+      No `pfx-default-value`: it is a Power Fx expression, and there is no
+      formula bar on a form.
+
+      Nothing generated by `refreshTypes` mentions this element —
+      manifestTypesGenerator.js reads only type-group, property and data-set —
+      so the event reaches the code through `context.events`, which the type
+      definitions declare independently of the manifest. index.ts explains what
+      that means for trusting it.
+    -->
+    <event name="onAction"
+           display-name-key="onAction_Name"
+           description-key="onAction_Desc" />
+
+    <resources>
+      <code path="index.ts" order="1" />
+      <css path="css/FormActionButton.css" order="1" />
+      <!--
+        Every language the control ships. A .resx on disk but missing here is
+        never packed, and nothing warns: the control runs in English for that
+        locale while the repository looks translated. `npm run check` catches
+        that, and a key missing from a language.
+
+        THE ORDER IS DELIBERATE AND 1033 GOES LAST. `pcf-start` picks the .resx
+        by manifest order rather than by locale — it reads whichever file is
+        listed last and ignores the LCID entirely. The platform itself ignores
+        the order completely, so `npm start` is the only thing in the world that
+        reads it. ADD A NEW LANGUAGE ABOVE THIS LINE: appending a sixth file
+        after 1033 silently moves the harness to that language, and the symptom
+        shows up in a session nobody connects to a manifest edit.
+      -->
+      <resx path="strings/FormActionButton.3082.resx" version="1.0.0" />
+      <resx path="strings/FormActionButton.1036.resx" version="1.0.0" />
+      <resx path="strings/FormActionButton.1031.resx" version="1.0.0" />
+      <resx path="strings/FormActionButton.1041.resx" version="1.0.0" />
+      <resx path="strings/FormActionButton.1033.resx" version="1.0.0" />
+    </resources>
+
+    <!--
+      One feature, and `required="false"` rather than `true`.
+
+      `Utility` is what `context.utils.hasEntityPrivilege` needs, and it is
+      model-driven only. `required="true"` is component **load failure** on any
+      host that lacks the feature rather than degradation — so the control asks
+      politely and checks before calling. `requirePrivilege="none"`, the
+      default, never touches it at all.
+
+      `context.navigation` needs no feature: Navigation is not in the feature
+      list, and pcf-row-commands calls four of its methods with only WebAPI
+      declared, for the delete rather than for the navigating.
+
+      No WebAPI. This control does not read or write Dataverse — the handler
+      does, from the form script, where it already has Xrm.WebApi and the
+      user's own context.
+    -->
+    <feature-usage>
+      <uses-feature name="Utility" required="false" />
+    </feature-usage>
+  </control>
+</manifest>
