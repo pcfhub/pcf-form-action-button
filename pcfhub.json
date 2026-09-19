@@ -4,8 +4,8 @@
   "name": "Form Action Button",
   "tagline": "A model-driven form button that raises an event a form script can handle, confirm and answer.",
   "category": "utilities",
+  "hosts": ["model-driven"],
   "tags": [
-    "model-driven",
     "button",
     "events",
     "confirmation",
