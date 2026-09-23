@@ -15,7 +15,9 @@
     "refreshTypes": "pcf-scripts refreshTypes",
     "smoke": "node dev/smoke.js",
     "harness": "node dev/serve.js",
-    "lint": "eslint FormActionButton --ext .ts,.tsx"
+    "lint": "eslint FormActionButton --ext .ts,.tsx",
+    "bump": "node scripts/version.mjs",
+    "release": "node scripts/release.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
