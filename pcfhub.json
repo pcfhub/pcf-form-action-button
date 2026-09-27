@@ -45,9 +45,9 @@
     ],
     "limitations": [
       "There is no form script behind this demo. On a real form the press reaches a handler registered with addEventHandler(\"onAction\", fn), and that handler is the whole point of the control — here it reaches nothing, so what you are pressing is the button rather than the action.",
-      "The platform's confirmation dialog is not available here, so switching a confirmation on shows the control's inline two-step fallback instead of the modal a form would put in front of you. Both are real behaviour; only one of them is what you would see on a form.",
+      "The confirmation dialog is the demo's stand-in for the platform's. The control finds openConfirmDialog, asks it, and raises onAction only on a confirm, which is its path on a form too; what differs is the dialog itself, drawn by the demo rather than by the app, so it does not carry your app's theme. The inline two-step the control falls back to on a host with no dialog is not shown here — the screenshots have it.",
       "The busy and result states cannot be reached from a preset. A handler drives them by calling setBusy() and setResult() back into the control, and there is no handler here to call them.",
-      "Privilege gating does nothing here. It needs context.utils and a record identity, and this harness publishes neither — which is the same reason the control declines to gate rather than hiding itself on such a host."
+      "Privilege gating does nothing here. It needs the table the form is on, which a form publishes through mode.contextInfo and this demo does not, so the control declines to gate — the correct behaviour on such a host, and it looks like nothing happening. The demo would grant every privilege in any case, so a denied button could not be shown either."
     ],
     "presets": [
       {
@@ -70,7 +70,7 @@
       {
         "slug": "confirm-delete",
         "name": "Confirmed, with a glyph",
-        "description": "On a form this opens the platform's own confirmation dialog. There is none here, so the control falls back to its inline two-step: the first press asks and turns the button red, the second acts. Press once and wait — it reverts after four seconds.",
+        "description": "On a form this opens the platform's confirmation dialog; here the demo draws a stand-in with the same title, question and button. Confirm and the event is raised — watch the outputs. Cancel, or press Escape, and nothing happens.",
         "props": {
           "label": "Delete record",
           "icon": "delete",
@@ -102,7 +102,7 @@
       {
         "slug": "long-label",
         "name": "A long label, confirmed",
-        "description": "The button wraps rather than overflowing, and does not change size between its two labels — the layout a narrow form column actually produces.",
+        "description": "The button wraps rather than overflowing — the layout a narrow form column actually produces. Its confirmation takes the default title and question, with Confirm submission on the button.",
         "props": {
           "label": "Submit this expense report for approval",
           "icon": "none",

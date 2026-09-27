@@ -253,11 +253,21 @@ publishing tool. Rebuild it from this section rather than looking for it.
 
 `fidelity: "limited"`, and it cannot honestly be more. There is no form script
 behind the demo, so the handler — most of the point — reaches nothing; the
-harness has no `openConfirmDialog`, so a confirmation shows the inline fallback
-rather than the modal; busy and result are driven by a handler calling back and
-there is none; and the privilege check needs `utils` and a record identity, so it
-correctly declines to gate and looks like nothing happening. All four are in
-`demo.limitations`.
+confirmation dialog is the hub's stand-in rather than the platform's; busy and
+result are driven by a handler calling back and there is none; and the privilege
+check needs the form's table from `mode.contextInfo`, which the demo does not
+publish, so it correctly declines to gate and looks like nothing happening. All
+four are in `demo.limitations`.
+
+**Until 2026-09-27 a confirm preset on the hub was a dead button, and this
+section said otherwise.** The harness's `openConfirmDialog` called
+`window.confirm`, and the demo frame is sandboxed without `allow-modals`, so the
+browser answered "cancelled" without showing anything. The control
+feature-detects the method, found it, took its platform path and was told the
+user declined: a press raised nothing, while `demo.limitations` described an
+inline fallback it never reached. A method that is present and always says no
+looks exactly like a user saying no; pressing the button on the live page is
+what found it. The hub now draws the dialog in the page (pcfhub#42).
 
 ## Not verified
 
