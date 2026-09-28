@@ -257,7 +257,7 @@ function mount(options = {}) {
         raised: () => payloads.length,
         dialogs: () => calls.filter((call) => call.indexOf('navigation.openConfirmDialog') === 0).length,
         find: (selector) => container.querySelector(selector),
-        findAll: (selector) => container.querySelectorAll(selector),
+        findAll: (selector) => Array.from(container.querySelectorAll(selector)),
         button: () => container.querySelector('.FormActionButton-button'),
         caption: () => container.querySelector('.FormActionButton-caption').textContent,
         status: () => container.querySelector('.FormActionButton-status').textContent,
