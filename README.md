@@ -85,22 +85,23 @@ already has `Xrm.WebApi` and the user's own context.
 `demo.fidelity: "limited"`, and it cannot honestly be more.
 
 Everything a visitor touches is real — the label, the glyph, asking before
-acting, the outputs, and the guarantee that the bound column stays put. Four
-things are not. There is no form script behind the demo, so `onAction` reaches
-nothing, and the handler is most of the point. The confirmation dialog is the
-hub's stand-in for the platform's: the control takes the same path it takes on a
-form and acts only on a confirm, but the dialog is drawn by the demo, and the
-inline fallback (the confirm swap, its four-second revert, Escape to disarm) is
-not shown there. The busy and result states are driven by a handler calling
-back, and there is no handler to call. And the privilege check needs the table
-the form is on, from `mode.contextInfo`, which the demo does not publish — so it
-declines to gate, which is the correct behaviour and looks like nothing
-happening.
+acting, the outputs, and the guarantee that the bound column stays put. So is
+privilege gating: `demo/record.json` puts the button on an account form in a
+stand-in Dataverse, which publishes the table through `mode.contextInfo`, and
+its user may not delete accounts (pcfhub/pcfhub#53), so a button requiring
+Delete is drawn disabled, or hidden. Three things are not real. There is no form
+script behind the demo, so `onAction` reaches nothing, and the handler is most
+of the point. The confirmation dialog is the hub's stand-in for the platform's:
+the control takes the same path it takes on a form and acts only on a confirm,
+but the dialog is drawn by the demo, and the inline fallback (the confirm swap,
+its four-second revert, Escape to disarm) is not shown there. And the busy and
+result states are driven by a handler calling back, and there is no handler to
+call.
 
-All four are written into `demo.limitations`. Four presets: a plain button, a
+All three are written into `demo.limitations`. Five presets: a plain button, a
 confirmed delete with a glyph, one with `writeSignal` on so the outputs visibly
-change on every press, and a long label to show it wrapping rather than
-overflowing.
+change on every press, a long label to show it wrapping rather than
+overflowing, and a Delete button gated on a privilege the user lacks.
 
 ## Install
 

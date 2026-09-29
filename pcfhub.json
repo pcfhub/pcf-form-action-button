@@ -43,11 +43,12 @@
     "styles": [
       "out/controls/FormActionButton/css/FormActionButton.css"
     ],
+    "datasetFixture": "demo/record.json",
     "limitations": [
       "There is no form script behind this demo. On a real form the press reaches a handler registered with addEventHandler(\"onAction\", fn), and that handler is the whole point of the control — here it reaches nothing, so what you are pressing is the button rather than the action.",
       "The confirmation dialog is the demo's stand-in for the platform's. The control finds openConfirmDialog, asks it, and raises onAction only on a confirm, which is its path on a form too; what differs is the dialog itself, drawn by the demo rather than by the app, so it does not carry your app's theme. The inline two-step the control falls back to on a host with no dialog is not shown here — the screenshots have it.",
       "The busy and result states cannot be reached from a preset. A handler drives them by calling setBusy() and setResult() back into the control, and there is no handler here to call them.",
-      "Privilege gating does nothing here. It needs the table the form is on, which a form publishes through mode.contextInfo and this demo does not, so the control declines to gate — the correct behaviour on such a host, and it looks like nothing happening. The demo would grant every privilege in any case, so a denied button could not be shown either."
+      "Privilege gating works here. The demo's stand-in Dataverse puts the button on an account form, published through mode.contextInfo as a form does, and its user has every privilege on account except Delete. The No delete privilege preset asks for Delete, so utils.hasEntityPrivilege says no and the button is drawn disabled; set Privilege denied to Hide and it goes, or set Require privilege to Write and it comes back. The other presets require none, as most buttons do."
     ],
     "presets": [
       {
@@ -112,6 +113,22 @@
           "confirmButtonLabel": "Confirm submission",
           "writeSignal": false,
           "requirePrivilege": "none",
+          "privilegeDenied": "disable"
+        }
+      },
+      {
+        "slug": "no-delete-privilege",
+        "name": "No delete privilege",
+        "description": "Require privilege set to Delete, on an account form whose user may not delete accounts: the button is drawn disabled. Set Privilege denied to Hide and it goes; require Write and it comes back.",
+        "props": {
+          "label": "Delete record",
+          "icon": "delete",
+          "confirmRequired": true,
+          "confirmTitle": "Delete this record?",
+          "confirmText": "This cannot be undone.",
+          "confirmButtonLabel": "Delete permanently",
+          "writeSignal": false,
+          "requirePrivilege": "delete",
           "privilegeDenied": "disable"
         }
       }

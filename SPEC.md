@@ -253,11 +253,24 @@ publishing tool. Rebuild it from this section rather than looking for it.
 
 `fidelity: "limited"`, and it cannot honestly be more. There is no form script
 behind the demo, so the handler — most of the point — reaches nothing; the
-confirmation dialog is the hub's stand-in rather than the platform's; busy and
-result are driven by a handler calling back and there is none; and the privilege
-check needs the form's table from `mode.contextInfo`, which the demo does not
-publish, so it correctly declines to gate and looks like nothing happening. All
-four are in `demo.limitations`.
+confirmation dialog is the hub's stand-in rather than the platform's; and busy
+and result are driven by a handler calling back and there is none. All three
+are in `demo.limitations`.
+
+**Privilege gating came off that list on 2026-09-28.** It needs the form's
+table from `mode.contextInfo`, which the harness publishes only with a stand-in
+Dataverse behind the demo, and until pcfhub/pcfhub#53 that stand-in granted
+every privilege anyway. `demo/record.json` now holds only a `dataverse` section:
+an account record, and `privileges: { delete: false }` on the account table,
+which `utils.hasEntityPrivilege` answers synchronously and by number as the
+platform does. A *No delete privilege* preset requires Delete. The others
+require none, so the confirmation and the write signal are untouched.
+
+Checked with 0.1.0's published bundle against that harness, before the push:
+
+- Require Delete, denied Disable: the button drawn and disabled;
+- denied Hide: the button gone;
+- Require Write, which the user holds: the button back and enabled.
 
 **Until 2026-09-27 a confirm preset on the hub was a dead button, and this
 section said otherwise.** The harness's `openConfirmDialog` called

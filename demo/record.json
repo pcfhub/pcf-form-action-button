@@ -1,0 +1,17 @@
+{
+    "dataverse": {
+        "record": {
+            "entityType": "account",
+            "id": "5c1b7e2a-3f4d-4e8a-9b6c-0d2e4f6a8b10",
+            "name": "Adventure Works"
+        },
+        "tables": {
+            "account": {
+                "entitySet": "accounts",
+                "primaryId": "accountid",
+                "primaryName": "name",
+                "privileges": { "delete": false }
+            }
+        }
+    }
+}
