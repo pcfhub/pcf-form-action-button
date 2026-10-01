@@ -3,6 +3,7 @@
   "slug": "pcf-form-action-button",
   "name": "Form Action Button",
   "tagline": "A model-driven form button that raises an event a form script can handle, confirm and answer.",
+  "summary": "A button you place on a model-driven form, beside the field or in the section it belongs to rather than in the command bar. Pressing it raises an event your form script handles, and the handler can answer: veto the press, show a busy state, or report a failure.\n\n- An optional confirmation before acting, using the platform's own dialog\n- A spinner and a status line while the handler is working\n\nModel-driven apps only. For a canvas app, use Action Button.",
   "category": "utilities",
   "hosts": ["model-driven"],
   "tags": [
