@@ -10,6 +10,10 @@ A button you put on a model-driven form. Pressing it raises an event your form
 script handles, and your handler can answer: veto the press, say it is working,
 or report that it failed.
 
+:::callout{type=warning}
+**Reference example · built with AI.** This control was written with AI (Claude) and tested on a live Dataverse form; its code has not been reviewed line by line. It is published as a worked example and is not maintained — read the source and [SPEC.md](https://github.com/pcfhub/pcf-form-action-button/blob/main/SPEC.md) (what was measured on the form) before you use it. Fixes are not guaranteed.
+:::
+
 ::image{src=media/screenshot-busy.png alt="The button disabled with a spinner in place of its glyph, still reading Approve, and the line Submitting for approval… underneath" zoom}
 
 **Model-driven apps only.** For a button in a canvas app, use
