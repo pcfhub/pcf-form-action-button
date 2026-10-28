@@ -60,3 +60,21 @@ a sentence long enough to be a good question is too long to be a good button.
 
 **`Press count`** never resets within a form session. It counts presses of this
 control instance, starting at zero when the form loads.
+
+**`Action name`** (since 0.2.0) is kept exactly as written — Dataverse is
+case-sensitive about action names, and a name in another case is a *not found*.
+A name with a space or a symbol in it is refused before any call, with the
+button off and the reason under it. Empty means no action: the 0.1.0 button.
+
+**`Action parameters`** is one JSON object, `{"Name": value}`, or the name of a
+web resource holding one. It is read when the button is first pressed, not when
+the form loads; a web resource that is missing is asked for again on the next
+press, so publishing a fix needs no reload. `"{record}"` must be a whole value —
+inside other text it is refused, because it becomes an object, not a string.
+
+**`Action status`** is `<press count>|ok` or `<press count>|failed`, and
+**`Action result`** the result property's value or empty. Both start empty and
+are written when the call answers, after `Press count`, which the press itself
+wrote. Read them from the control — `getOutputs()` keys each one as
+`"<column>.fieldControl.actionStatus"`; see
+[Model-driven apps](model-driven#the-two-outputs-and-refreshing-the-form-afterwards).

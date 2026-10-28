@@ -282,24 +282,89 @@ inline fallback it never reached. A method that is present and always says no
 looks exactly like a user saying no; pressing the button on the live page is
 what found it. The hub now draws the dialog in the page (pcfhub#42).
 
+## 0.2.0, measured before it is written
+
+0.2.0 calls a Dataverse action when the button is pressed, so a flow (the
+*When an action is performed* trigger) or a plug-in can do the work with no
+form script. Probe build 0.1.9 (`17da438`, never tagged) asked the form first,
+on 2026-10-28: account's Information form on the test environment, the control
+on a new single-line column `cll_actionsignal` (Grid tab), on Adventure Works
+(sample) and on a new account. Two throwaway no-plug-in Custom APIs answered
+the calls — `pcfhub_FabProbe` bound to account and `pcfhub_FabProbeGlobal`
+unbound, each with an optional String `Note` and an optional EntityReference
+`Record`, *Allowed custom processing step type* Async only, no response
+properties — in a throwaway catalog and category. The rule, stated before any
+answer: one that went the wrong way removed the feature that rested on it.
+
+**0.1.0's headline, first time on a form** (it shipped without, see *Not
+verified* as it stood):
+
+- **E1 — the event reaches a form script, whole.** `getControl("cll_actionsignal")
+  .addEventHandler("onAction", fn)` — from the console's `Xrm.Page`, not yet
+  from an On Load library — fired on a real click with `action: "press"`,
+  `pressCount`, `label`, `entityTypeName: "account"`, `entityId` (bare
+  lower-case GUID) and **all three functions** (`preventDefault`, `setBusy`,
+  `setResult` typed `function`). `context.events.onAction` is a function on
+  the form.
+- **E2 — the callbacks work.** `preventDefault()` kept the outputs where they
+  were (two output events before the press, two after; the payload's
+  `pressCount` was 3, the number the press would have had). `setBusy("Probe
+  busy")` disabled the button, set `aria-busy`, put the sentence in the status
+  line and left the caption alone; `setResult({ ok: true, message })` 1.5 s
+  later returned it to idle with the message.
+- **E3 — repeats are observable.** Two identical presses fired
+  `OnOutputChange` twice, `pressCount` 1 then 2.
+- **And channel 2's own example was wrong twice.** In an `addOnOutputChange`
+  handler, `executionContext.getEventSource()` is the **column** (it has
+  `getValue`, not `getOutputs`), and `getOutputs()` keys every output as
+  `"<column>.fieldControl.<name>"` with a `{ type, value }` — `outputs.pressCount`
+  is `undefined`. What works: `executionContext.getFormContext().getControl("<column>")
+  .getOutputs()["<column>.fieldControl.pressCount"].value`. docs/model-driven.md
+  is corrected in 0.2.0.
+
+**The action call:**
+
+- **P1 — the record, and after the first save.** `contextInfo` carries
+  `entityTypeName: "account"` and the bare lower-case id on a saved record; on
+  a new one `entityId` is **`null`**, present. After the first save (8.2 s,
+  `telephone1` required on this form) **the same instance** received the new id
+  on its fourth `updateView` — no `destroy`, no second `init`. So a bound
+  button can turn on after the first save without a reload.
+- **P2 — the address from metadata.** `utils.getEntityMetadata("account")` from
+  a field control: `EntitySetName: "accounts"`, `PrimaryIdAttribute:
+  "accountid"`, `LogicalName`, in 0–1 ms (cached by the form) — on the saved
+  record and on the new one. `lib/web-api-action`'s `loadRecordKeys` never
+  needed its `EntityDefinitions` fallback.
+- **P3 — the base.** `page.getClientUrl()` answers the organisation URL on a
+  field control; `organisationUrl` agrees.
+- **P4 — the bound call.** `POST accounts(<id>)/Microsoft.Dynamics.CRM.pcfhub_FabProbe`
+  with `{"Note": "…", "Record": {"@odata.type": "Microsoft.Dynamics.CRM.account",
+  "accountid": "…"}}` answered **204 in 411 ms**; unbound,
+  `POST pcfhub_FabProbeGlobal`, 204 in 206 ms. A Custom API with no response
+  properties answers 204, as `pcf-row-commands` P4 found from a dataset.
+- **P4b — a name a bound API may not use.** Creating the bound API with a
+  parameter named `Target` was refused: 400 `0x80048d0b` *Custom API bound to
+  an entity cannot use the reserved name 'Target' as the name of a Custom API
+  Request Parameter.* The bound record *is* `Target`; the docs say so.
+- **P8 — refreshing the form after.** In an `addOnOutputChange` handler, a
+  server-side write (a Web API `PATCH`, standing in for a plug-in) then
+  `formContext.data.refresh(false)` showed the new value in 251 ms, the form
+  clean, and the control **not** remounted (same instance, no `destroy`). That
+  is the snippet the docs give for an action whose plug-in changes the record.
+
+**Open at the time of writing — P5, P6, P7, the flow.** Whether a flow on
+*When an action is performed* runs after the control's call, how long after,
+and what its trigger body carries (the bound record's id, each parameter). The
+code does not depend on it — the control calls an action either way — so 0.2.0
+was written and the flow is the walkthrough's W1; the docs' flow section waits
+for it.
+
 ## Not verified
 
-**That `addEventHandler("onAction", fn)` fires for a custom `<event>` on a real
-form, and that the payload arrives intact including its functions.** This is the
-control's headline feature and nothing on this machine can prove it. The schema
-proves the manifest compiles; the type definitions promise a bag unconditionally,
-which is a promise about types; the documentation is preview. The control
-therefore feature-detects and always writes its outputs, so a host that binds
-nothing still produces a working button.
-
-*What would prove it:* import the managed solution, put the control on a column,
-attach the `docs/installation.md` web resource to the form's On Load, and press.
-An alert proves the bag is populated and the handler bound. Then have the handler
-call `payload.preventDefault()` and confirm the outputs do **not** move, and
-`payload.setBusy()` / `setResult()` and confirm the button does.
-
-**That `addOnOutputChange` + `getOutputs()` sees `pressCount` change**, and that
-two identical confirmed presses produce two events rather than one.
+**That `addEventHandler("onAction", fn)` registered from a form's On Load
+library behaves as E1 found it from the console.** The console's `Xrm.Page` is
+the same form; the On Load route adds the library and the execution context,
+and the docs' snippet is that route.
 
 **That a `writeSignal` write fires the bound column's `OnChange`**, and that
 `setSubmitMode("never")` keeps it out of the save.

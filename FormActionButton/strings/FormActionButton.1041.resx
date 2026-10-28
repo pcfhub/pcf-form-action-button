@@ -224,4 +224,79 @@
   <data name="FormActionButton_NoPrivilege" xml:space="preserve">
     <value>この操作を行う権限がありません。</value>
   </data>
+  <data name="actionName_Name" xml:space="preserve">
+    <value>アクション名</value>
+  </data>
+  <data name="actionName_Desc" xml:space="preserve">
+    <value>確定したクリックごとに呼び出す Dataverse アクション (カスタム API またはプラットフォーム メッセージ) の一意の名前。大文字と小文字は区別されます。イベントを発生させるだけのボタンにする場合は空のままにします。</value>
+  </data>
+  <data name="actionBinding_Name" xml:space="preserve">
+    <value>アクションのバインド</value>
+  </data>
+  <data name="actionBinding_Desc" xml:space="preserve">
+    <value>バインド: このフォームのレコードに対して呼び出します。非バインド: 単独で呼び出します。</value>
+  </data>
+  <data name="binding_Bound" xml:space="preserve">
+    <value>このレコードにバインド</value>
+  </data>
+  <data name="binding_Unbound" xml:space="preserve">
+    <value>非バインド</value>
+  </data>
+  <data name="actionParameters_Name" xml:space="preserve">
+    <value>アクションのパラメーター</value>
+  </data>
+  <data name="actionParameters_Desc" xml:space="preserve">
+    <value>JSON のパラメーター、またはそれを含む Web リソースの名前 (フォームでは 100 文字まで)。{id} は任意のテキストにレコードの ID を入れます。値がちょうど "{record}" の場合はレコードを参照として送信します。</value>
+  </data>
+  <data name="resultProperty_Name" xml:space="preserve">
+    <value>結果のプロパティ</value>
+  </data>
+  <data name="resultProperty_Desc" xml:space="preserve">
+    <value>呼び出し後にボタンが値を表示する、アクションの応答プロパティ。</value>
+  </data>
+  <data name="actionStatus_Name" xml:space="preserve">
+    <value>アクションの状態</value>
+  </data>
+  <data name="actionStatus_Desc" xml:space="preserve">
+    <value>アクションが応答した後の "&lt;クリック数&gt;|ok" または "&lt;クリック数&gt;|failed"。</value>
+  </data>
+  <data name="actionResult_Name" xml:space="preserve">
+    <value>アクションの結果</value>
+  </data>
+  <data name="actionResult_Desc" xml:space="preserve">
+    <value>最後の呼び出しの結果プロパティの値。ない場合は空です。</value>
+  </data>
+  <data name="FormActionButton_Running" xml:space="preserve">
+    <value>実行しています…</value>
+  </data>
+  <data name="FormActionButton_Sent" xml:space="preserve">
+    <value>送信しました。</value>
+  </data>
+  <data name="FormActionButton_SaveFirst" xml:space="preserve">
+    <value>先にレコードを保存してください。</value>
+  </data>
+  <data name="FormActionButton_NoOrganisation" xml:space="preserve">
+    <value>このボタンは Dataverse アクションを呼び出しますが、ここには呼び出せる Dataverse がありません。</value>
+  </data>
+  <data name="FormActionButton_NoAddress" xml:space="preserve">
+    <value>このテーブルのレコードのアドレスを読み取れませんでした。</value>
+  </data>
+  <data name="FormActionButton_BadName" xml:space="preserve">
+    <value>"{0}" は Web API が受け付けるアクション名ではありません。</value>
+  </data>
+  <data name="FormActionButton_BadResult" xml:space="preserve">
+    <value>"{0}" は応答プロパティの名前ではありません。</value>
+  </data>
+  <data name="FormActionButton_BadParameters" xml:space="preserve">
+    <value>アクションのパラメーターを読み取れませんでした: {0}</value>
+  </data>
+  <data name="FormActionButton_ParametersMissing" xml:space="preserve">
+    <value>アクションのパラメーターを含む Web リソース {0} が見つかりませんでした。</value>
+  </data>
+  <data name="FormActionButton_ParametersUnreadable" xml:space="preserve">
+    <value>アクションのパラメーターを含む Web リソース {0} を読み取れませんでした。</value>
+  </data>
+  <data name="FormActionButton_ActionNameHint" xml:space="preserve">
+    <value>アクション名 {0} と、バインドされているかどうかを確認してください。名前は大文字と小文字が区別されます。</value>
+  </data>
 </root>

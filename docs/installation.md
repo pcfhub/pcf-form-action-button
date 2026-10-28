@@ -123,5 +123,9 @@ is the single most common reason step 4 appears not to work.
 - A model-driven app. Canvas is not supported — see
   [Limitations](limitations).
 - Nothing else. The control declares one optional feature, `Utility`, which it
-  uses only when you ask for a privilege check; it degrades rather than failing
-  where the host has none.
+  uses for a privilege check and — since 0.2.0 — to read the address of the
+  table a bound action is called on; it degrades rather than failing where the
+  host has none.
+- **To call an action** (optional): a Custom API or other Dataverse action the
+  user may run. Step 4's script is then optional too — see
+  [Model-driven apps](model-driven#call-an-action-no-script).

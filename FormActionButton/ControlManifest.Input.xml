@@ -7,16 +7,17 @@
   -->
   <control namespace="PCFHub"
            constructor="FormActionButton"
-           version="0.1.9"
+           version="0.2.0"
            display-name-key="FormActionButton_Name"
            description-key="FormActionButton_Desc"
            control-type="standard">
 
     <!--
       Nothing here talks to a third party. The control raises an event, asks the
-      platform's own dialog, and reads a privilege; every one of those is the
-      host's own machinery. Premium is a cost the installer's users pay, and
-      this control does not earn it.
+      platform's own dialog, reads a privilege and — since 0.2.0, when a maker
+      names one — calls a Dataverse action on the organisation it runs in; every
+      one of those is the host's own machinery. Premium is a cost the
+      installer's users pay, and this control does not earn it.
     -->
     <external-service-usage enabled="false" />
 
@@ -222,6 +223,79 @@
     </property>
 
     <!--
+      SINCE 0.2.0: A DATAVERSE ACTION, CALLED ON EVERY PRESS THAT COMMITS.
+
+      Name a Custom API (or a platform message) and the button calls it after
+      the event and the outputs — on this form's record when it is bound — so a
+      flow on Power Automate's "When an action is performed" trigger, or a
+      plug-in on the message, does the work with no form script at all. Empty,
+      the default, is 0.1.0's button exactly.
+
+      Four properties rather than one JSON blob, so each is a plain field in
+      the form designer — and a form refuses a static value over 100
+      characters (measured, pcf-code-editor), which a blob reaches at once.
+      Only the parameters can grow, so only they may name a web resource
+      instead (`lib/config-source`).
+
+      `actionName` is kept as written: the server is case-sensitive about it,
+      and another spelling is a 404 (pcf-row-commands P2).
+    -->
+    <property name="actionName"
+              display-name-key="actionName_Name"
+              description-key="actionName_Desc"
+              of-type="SingleLine.Text"
+              usage="input"
+              required="false"
+              default-value="" />
+
+    <!--
+      Bound by default: an action on a form is overwhelmingly about the record
+      on it, and a maker's own Custom API is mostly bound. Required beside the
+      name in pcf-row-commands' JSON because there the platform's own messages
+      are as likely; here an enum with a default asks nothing of the maker who
+      means the common case. A wrong choice is a 404 the control explains.
+    -->
+    <property name="actionBinding"
+              display-name-key="actionBinding_Name"
+              description-key="actionBinding_Desc"
+              of-type="Enum"
+              usage="input"
+              required="false"
+              default-value="bound">
+      <value name="bound" display-name-key="binding_Bound">bound</value>
+      <value name="unbound" display-name-key="binding_Unbound">unbound</value>
+    </property>
+
+    <!--
+      The body, as JSON — `{"Reason": "From the form", "Account": "{record}"}`
+      — or the name of a web resource holding it. `{id}` is the record's GUID
+      anywhere in a string; a value of exactly "{record}" becomes a typed
+      reference to it, built here because the server refuses one without its
+      `@odata.type` (pcf-row-commands P3). A bound action's record needs
+      neither: it is the action's own `Target` (P4b).
+    -->
+    <property name="actionParameters"
+              display-name-key="actionParameters_Name"
+              description-key="actionParameters_Desc"
+              of-type="SingleLine.Text"
+              usage="input"
+              required="false"
+              default-value="" />
+
+    <!--
+      A response property whose value the button says after the call — what a
+      plug-in behind the action returns. An action with no response properties
+      answers 204 and the button says "Sent."; a flow's trigger action is one.
+    -->
+    <property name="resultProperty"
+              display-name-key="resultProperty_Name"
+              description-key="resultProperty_Desc"
+              of-type="SingleLine.Text"
+              usage="input"
+              required="false"
+              default-value="" />
+
+    <!--
       TWO OUTPUTS FOR ONE BUTTON, AND THE SECOND ONE IS NOT REDUNDANT.
 
       A model-driven form script reads these two ways: `control.getOutputs()`
@@ -245,6 +319,30 @@
     <property name="lastAction"
               display-name-key="lastAction_Name"
               description-key="lastAction_Desc"
+              of-type="SingleLine.Text"
+              usage="output" />
+
+    <!--
+      Since 0.2.0, how the action's call went: "<pressCount>|ok" or
+      "<pressCount>|failed", written when the answer arrives — after
+      `pressCount`, which the press wrote at once. The count is in it for the
+      reason `pressCount` exists: two calls that both succeed are otherwise one
+      change and one silence (E3). `actionResult` is the named response
+      property's value, or "".
+
+      A script refreshing the form after a plug-in's write watches this one —
+      `formContext.data.refresh(false)` from `addOnOutputChange` showed the
+      write in 251 ms without remounting the control (P8).
+    -->
+    <property name="actionStatus"
+              display-name-key="actionStatus_Name"
+              description-key="actionStatus_Desc"
+              of-type="SingleLine.Text"
+              usage="output" />
+
+    <property name="actionResult"
+              display-name-key="actionResult_Name"
+              description-key="actionResult_Desc"
               of-type="SingleLine.Text"
               usage="output" />
 
@@ -331,13 +429,19 @@
       politely and checks before calling. `requirePrivilege="none"`, the
       default, never touches it at all.
 
+      Since 0.2.0 it pays for one more thing: `getEntityMetadata`, which gives
+      the table's entity set and id column for a bound action's address (P2,
+      0–1 ms on a form). Without it the address comes from `EntityDefinitions`
+      instead (`lib/web-api-action/keys.ts`).
+
       `context.navigation` needs no feature: Navigation is not in the feature
       list, and pcf-row-commands calls four of its methods with only WebAPI
       declared, for the delete rather than for the navigating.
 
-      No WebAPI. This control does not read or write Dataverse — the handler
-      does, from the form script, where it already has Xrm.WebApi and the
-      user's own context.
+      Still no WebAPI. `context.webAPI` has the five CRUD methods and no way to
+      call an action, so the action is a same-origin POST the session cookie
+      authorises, and declaring the feature would buy an install-time prompt
+      for nothing the control uses.
     -->
     <feature-usage>
       <uses-feature name="Utility" required="false" />

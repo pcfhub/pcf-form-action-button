@@ -1,6 +1,6 @@
 ---
 title: Examples
-description: Five handlers, from the smallest useful one to a confirmed write with a busy state.
+description: Five handlers, from the smallest useful one to a confirmed write with a busy state — and two buttons that need no script at all.
 order: 6
 ---
 
@@ -158,3 +158,43 @@ Keep the column out of the save unless you want the value stored:
 ```javascript
 formContext.getAttribute("contoso_actionanchor").setSubmitMode("never");
 ```
+
+## A flow, from a button, with no script
+
+Since 0.2.0. A **Send to finance** button beside the invoice total that starts a
+Power Automate flow on the invoice:
+
+```text
+Label            Send to finance
+Icon             send
+Ask first        Yes
+Action name      contoso_SendToFinance        (a Custom API bound to contoso_invoice)
+Action binding   Bound to this record
+```
+
+The flow's trigger is **When an action is performed** — your catalog and
+category, table *Invoice*, action *contoso_SendToFinance*. The press asks, then
+calls the action; the button says *Sent.*, and the flow runs on its own. The
+set-up, including the catalog, is in
+[Model-driven apps](model-driven#running-a-flow-from-the-button).
+
+## Pass a value, and show what came back
+
+A Custom API with a plug-in behind it, taking a reason and the record, and
+answering a `Message`:
+
+```text
+Action name        contoso_Escalate
+Action binding     Unbound
+Action parameters  {"Reason":"From the account form","Account":"{record}"}
+Result property    Message
+```
+
+`"{record}"` becomes a reference to the account the form shows; the button then
+says the plug-in's `Message` — *Escalated to the duty manager* — and writes it to
+the **Action result** output. A refusal from the plug-in is shown in red, in the
+plug-in's own words.
+
+The parameters are 55 characters, inside the 100 a form keeps. Longer ones go in
+a web resource — put its name, say `contoso_/escalate.json`, in **Action
+parameters** instead.

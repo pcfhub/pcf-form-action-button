@@ -402,6 +402,29 @@
          * hosts that matter most for a demo.
          */
         resource: null,
+
+        /**
+         * What `page.getClientUrl()` answers: the organisation's URL, or
+         * `null` for a host with no `page` at all, or `'throws'` for canvas
+         * as measured (2026-09-22) — the method is published there and throws
+         * `Method not implemented.` from the call.
+         *
+         * `null` by default, so every existing assertion runs on a host where
+         * 0.2.0's action is never called. Set it, and `fetch` is the stub
+         * below: Web API actions answered from `actions`, web resources from
+         * `webResources`, every call logged as `fetch("POST /api/…")` and its
+         * body as `fetch.body(…)`.
+         */
+        clientUrl: null,
+
+        /** Web API actions, in `_template/dev/host.js`'s `fixture.actions` shape — see `actionAnswer`. */
+        actions: {},
+
+        /** `0` refuses every action as offline; another status refuses every action with it. */
+        actionStatus: undefined,
+
+        /** Web resources by name, for a property that names one instead of holding its text. */
+        webResources: {},
     };
 
     /**
@@ -548,6 +571,289 @@
      * only the state it is interested in — which is what lets an assertion in
      * `smoke.js` read as a sentence about one branch.
      */
+    /*
+     * The Web API action stub, copied verbatim from _template/dev/host.js
+     * (2026-10-28) with the three reply helpers it needs: the refusals in the
+     * server's order, as pcf-hierarchy-view's 0.2.9 and pcf-row-commands'
+     * 0.3.4 probes measured them. Refresh it from the template rather than
+     * editing it here.
+     */
+    function reply(status, body) {
+        return Promise.resolve({
+            ok: status >= 200 && status < 300,
+            status: status,
+            headers: {
+                get: function (name) {
+                    return String(name).toLowerCase() === 'content-type' ? 'application/json; odata.metadata=minimal' : null;
+                },
+            },
+            json: function () {
+                return Promise.resolve(body);
+            },
+            text: function () {
+                return Promise.resolve(JSON.stringify(body));
+            },
+        });
+    }
+
+    /** A header off a fetch init, whether `headers` is a plain object or a `Headers`. */
+    function headerOf(init, name) {
+        var headers = init && init.headers;
+
+        if (!headers) {
+            return null;
+        }
+        if (typeof headers.get === 'function') {
+            return headers.get(name);
+        }
+
+        var key = Object.keys(headers).filter(function (k) {
+            return k.toLowerCase() === name.toLowerCase();
+        })[0];
+
+        return key === undefined ? null : headers[key];
+    }
+
+    /** A reply with nothing in its body — the 401 a request without the session gets. */
+    function emptyReply(status) {
+        return Promise.resolve({
+            ok: status >= 200 && status < 300,
+            status: status,
+            headers: { get: function () { return null; } },
+            json: function () { return Promise.reject(new SyntaxError('Unexpected end of JSON input')); },
+            text: function () { return Promise.resolve(''); },
+        });
+    }
+
+    var PAYLOAD_FAULT = "Error identified in Payload provided by the user for Entity :'', For more information on this error please follow this help link https://go.microsoft.com/fwlink/?linkid=2195293  ---->  InnerException : ";
+
+    /**
+     * A Web API **action** — a POST `context.webAPI` cannot make — answered
+     * from `fixture.actions`, as `pcf-hierarchy-view`'s 0.2.9 probe measured
+     * one on a form (2026-10-15, SPEC.md A1–A4, a no-plug-in Custom API):
+     *
+     *   POST <prefix><name>                                   unbound
+     *   POST <prefix><set>(<id>)/Microsoft.Dynamics.CRM.<name> bound
+     *
+     * Refusals first, in the order the server meets them: a GET on an action
+     * is a 404 whose `code` is **empty**; no `Content-Type: application/json`
+     * is a 415; `credentials: 'omit'` is a 401 with no body; a name the
+     * environment does not have — or a bound action without its
+     * `Microsoft.Dynamics.CRM.` prefix, or called unbound — is a 404
+     * `0x80060888`; a body that is not JSON, a parameter the action does not
+     * take, a value of the wrong type and a required parameter left out are
+     * each a 400 `0x80048d19` whose message carries the server's exception
+     * text. Then 200 with the response properties under an `@odata.context`.
+     * The OData headers are not required (measured). **The record is never
+     * touched** — a no-plug-in action left `modifiedon` and `versionnumber`
+     * alone (A4) — so the stub hands `answer` the parameters and no row.
+     *
+     *   actions: { pcfhub_Echo: { parameters: { Text: { type: 'Edm.String' } },
+     *                             response: ['Echo'], answer: (p) => ({ Echo: p.Text }) },
+     *              pcfhub_EchoAccount: { boundTo: 'account', … } }
+     *
+     * A parameter is required unless `optional: true`. Since
+     * `pcf-row-commands`' 0.3.4 probe (2026-10-16, its SPEC.md P2–P5): the
+     * name is case-sensitive (another spelling is the 404 above); an
+     * `Edm.Guid` that is not one is a 400 (braces are fine); a parameter typed
+     * `Microsoft.Dynamics.CRM.crmbaseentity` — an EntityReference — is a 400
+     * without its `@odata.type` and takes any table with one; an action with
+     * no response properties answers **204** (measured). `refuse(params, id)`
+     * returning `{ status, code, message }` is a refusal of the action's own —
+     * a plug-in's, or the platform's, which arrives short and whole with no
+     * *InnerException* (404 `0x80040217` *… Does Not Exist*). `actionStatus`
+     * other than 200 refuses every action with that status and a generic
+     * body. Returns `null` for a path that is not an action's, so the rest of
+     * the stub answers it.
+     */
+    function actionAnswer(fixture, o, method, path, init, clientUrl) {
+        var actions = fixture.actions || {};
+        var bound = path.match(/^([A-Za-z_][\w]*)\(([^)]*)\)\/((?:Microsoft\.Dynamics\.CRM\.)?)([A-Za-z_][\w]*)$/);
+        var unbound = path.match(/^([A-Za-z_][\w]*)$/);
+        var name = bound ? bound[4] : unbound ? unbound[1] : null;
+        var sets = fixture.entitySets || {};
+        var isSet = unbound && Object.keys(sets).some(function (t) { return sets[t] === unbound[1]; });
+
+        if (name === null || isSet) {
+            return null;
+        }
+
+        var notFound = function (period) {
+            return reply(404, { error: { code: '0x80060888', message: "Resource not found for the segment '" + name + "'" + (period ? '.' : '') } });
+        };
+
+        if (method !== 'POST') {
+            return method === 'GET' && actions[name]
+                ? reply(404, { error: { code: '', message: "No HTTP resource was found that matches the request URI '" + clientUrl + '/api/data/v9.2/' + path + "'." } })
+                : null;
+        }
+
+        var status = o.actionStatus;
+
+        if (status === 0) {
+            return Promise.reject(new TypeError('Failed to fetch'));
+        }
+        if (init && init.credentials === 'omit') {
+            return emptyReply(401);
+        }
+        if (!/application\/json/i.test(String(headerOf(init, 'Content-Type') || ''))) {
+            return reply(415, { error: { code: '0x80060888', message: 'POST request requires Content-Type application/json.' } });
+        }
+
+        var def = actions[name];
+
+        if (bound && !bound[3]) {
+            return notFound(false);
+        }
+        if (!def || Boolean(bound) !== Boolean(def.boundTo) || (bound && sets[def.boundTo] !== undefined && sets[def.boundTo] !== bound[1])) {
+            // The server names the segment it could not resolve, measured 2026-10-16
+            // (pcf-row-commands P2): a qualified bound one with its namespace and no
+            // period, an unbound one — or a bound action called unbound — with a period.
+            return bound
+                ? reply(404, { error: { code: '0x80060888', message: "Resource not found for the segment 'Microsoft.Dynamics.CRM." + name + "'" } })
+                : notFound(true);
+        }
+        if (status !== undefined && status !== 200) {
+            return reply(status, { error: { code: '0x80040220', message: 'Refused by the rig.' } });
+        }
+
+        var body;
+
+        try {
+            body = JSON.parse(String(init && init.body !== undefined ? init.body : ''));
+        } catch (e) {
+            return reply(400, { error: { code: '0x80048d19', message: PAYLOAD_FAULT + 'System.ArgumentException: Stream was not readable.' } });
+        }
+
+        var params = def.parameters || {};
+        var given = Object.keys(body || {}).filter(function (k) { return k.indexOf('@') === -1; });
+        var unknown = given.filter(function (k) { return !params[k]; })[0];
+
+        if (unknown !== undefined) {
+            return reply(400, { error: { code: '0x80048d19', message: PAYLOAD_FAULT + "Microsoft.OData.ODataException: The parameter '" + unknown + "' in the request payload is not a valid parameter for the operation '" + name + "'." } });
+        }
+
+        var wrong = given.filter(function (k) {
+            var t = params[k].type || 'Edm.String';
+            var v = body[k];
+
+            return v !== null && ((t === 'Edm.String' || t === 'Edm.Guid') ? typeof v !== 'string'
+                : t === 'Edm.Boolean' ? typeof v !== 'boolean'
+                : /^Edm\.(Int|Decimal|Double)/.test(t) ? typeof v !== 'number' : false);
+        })[0];
+
+        if (wrong !== undefined) {
+            return reply(400, { error: { code: '0x80048d19', message: PAYLOAD_FAULT + "Microsoft.OData.ODataException: Cannot convert the literal '" + body[wrong] + "' to the expected type '" + (params[wrong].type || 'Edm.String') + "'." } });
+        }
+
+        // Measured 2026-10-16 (pcf-row-commands SPEC.md P3): a Guid that is not one, and an
+        // EntityReference without its @odata.type, are payload faults; braces around a Guid
+        // are accepted, and so is a reference typed as the *wrong* table — nothing checks it.
+        var notGuid = given.filter(function (k) {
+            return params[k].type === 'Edm.Guid' && typeof body[k] === 'string'
+                && !/^{?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}}?$/i.test(body[k]);
+        })[0];
+
+        if (notGuid !== undefined) {
+            return reply(400, { error: { code: '0x80048d19', message: PAYLOAD_FAULT + "Microsoft.OData.ODataException: Cannot convert the literal '" + body[notGuid] + "' to the expected type 'Edm.Guid'. ---> System.FormatException: Guid should contain 32 digits with 4 dashes (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)." } });
+        }
+
+        var untyped = given.filter(function (k) {
+            return /crmbaseentity$/.test(params[k].type || '') && body[k] !== null && typeof body[k] === 'object' && !body[k]['@odata.type'];
+        })[0];
+
+        if (untyped !== undefined) {
+            var property = Object.keys(body[untyped])[0];
+
+            return reply(400, { error: { code: '0x80048d19', message: PAYLOAD_FAULT + "Microsoft.Crm.CrmException: Invalid property '" + property + "' was found in entity 'Microsoft.Dynamics.CRM.crmbaseentity'. ---> Microsoft.OData.ODataException: The property '" + property + "' does not exist on type 'Microsoft.Dynamics.CRM.crmbaseentity'." } });
+        }
+
+        var missing = Object.keys(params).filter(function (k) { return !params[k].optional && given.indexOf(k) === -1; });
+
+        if (missing.length > 0) {
+            return reply(400, { error: { code: '0x80048d19', message: PAYLOAD_FAULT + "Microsoft.OData.ODataException: One or more parameters of the operation '" + name + "' are missing from the request payload. The missing parameters are: " + missing.join(', ') + '.' } });
+        }
+
+        // A refusal the action raises for a reason of its own — a plug-in's message, or
+        // the platform's: short and whole, no InnerException (P5, GrantAccess to nobody:
+        // 404 0x80040217 "Entity 'systemuser' With Id = … Does Not Exist").
+        var refusal = typeof def.refuse === 'function' ? def.refuse(JSON.parse(JSON.stringify(body)), bound ? bound[2] : null) : null;
+
+        if (refusal) {
+            return reply(refusal.status || 400, { error: { code: refusal.code || '0x80040265', message: refusal.message || 'Refused by the action.' } });
+        }
+
+        var response = def.response || [];
+
+        if (response.length === 0) {
+            return emptyReply(204);
+        }
+
+        var answered = typeof def.answer === 'function' ? def.answer(JSON.parse(JSON.stringify(body)), bound ? bound[2] : null) || {} : {};
+        var out = { '@odata.context': clientUrl + '/api/data/v9.2/$metadata#Microsoft.Dynamics.CRM.' + name + 'Response' };
+
+        response.forEach(function (prop) {
+            out[prop] = answered[prop] === undefined ? null : answered[prop];
+        });
+
+        return reply(200, out);
+    }
+
+
+    /**
+     * `fetch`, for a host with an organisation: the control's own
+     * same-origin calls, answered here and nowhere else. Anything not under
+     * the organisation is refused, so a control that reaches outside it fails
+     * loudly in the suite.
+     */
+    function installFetch(o, log) {
+        var root = typeof globalThis !== 'undefined' ? globalThis : window;
+        var clientUrl = o.clientUrl;
+        var prefix = clientUrl + '/api/data/v9.2/';
+        var table = (o.contextInfo && o.contextInfo.entityTypeName) || 'account';
+        var fixture = { actions: o.actions || {}, entitySets: {} };
+
+        fixture.entitySets[table] = o.entitySetName;
+
+        root.fetch = function (url, init) {
+            var address = String(url);
+            var method = String((init && init.method) || 'GET').toUpperCase();
+
+            if (address.indexOf(clientUrl + '/WebResources/') === 0) {
+                var name = decodeURIComponent(address.slice((clientUrl + '/WebResources/').length));
+                var text = (o.webResources || {})[name];
+
+                log('fetch', address.slice(clientUrl.length));
+
+                if (o.actionStatus === 0) {
+                    return Promise.reject(new TypeError('Failed to fetch'));
+                }
+
+                return text === undefined
+                    ? emptyReply(404)
+                    : Promise.resolve({ ok: true, status: 200, headers: { get: function () { return 'text/jscript'; } }, text: function () { return Promise.resolve(text); } });
+            }
+
+            if (address.indexOf(prefix) !== 0) {
+                return Promise.reject(new TypeError('No fetch for ' + address));
+            }
+
+            log('fetch', (method === 'GET' ? '' : method + ' ') + address.slice(clientUrl.length));
+
+            if (init && typeof init.body === 'string') {
+                try {
+                    log('fetch.body', JSON.parse(init.body));
+                } catch (e) {
+                    log('fetch.body', init.body);
+                }
+            }
+
+            var answer = actionAnswer(fixture, o, method, address.slice(prefix.length), init, clientUrl);
+
+            return answer || Promise.reject(new TypeError('No answer for ' + method + ' ' + address));
+        };
+    }
+
     function createContext(options) {
         var o = Object.assign({}, DEFAULTS, options || {});
 
@@ -567,6 +873,10 @@
         }
 
         var host = HOSTS[o.host] || HOSTS['model-driven'];
+
+        if (typeof o.clientUrl === 'string' && o.clientUrl !== 'throws') {
+            installFetch(o, log);
+        }
         var security = SECURITY[o.security];
 
         var getString =
@@ -998,6 +1308,22 @@
              * stand.
              */
             fluentDesignLanguage: host.publishesTheme ? { isDarkTheme: Boolean(o.dark) } : undefined,
+
+            /*
+             * `page`, with the one member a same-origin call needs. Absent by
+             * default — see `clientUrl` in DEFAULTS.
+             */
+            page: o.clientUrl === null || o.clientUrl === undefined
+                ? undefined
+                : {
+                    getClientUrl: function () {
+                        if (o.clientUrl === 'throws') {
+                            throw new Error('Method not implemented.');
+                        }
+
+                        return o.clientUrl;
+                    },
+                },
 
             userSettings: {
                 isRTL: o.rtl,

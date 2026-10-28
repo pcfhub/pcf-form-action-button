@@ -168,6 +168,10 @@ const MANIFEST_DEFAULTS = {
     writeSignal: false,
     requirePrivilege: 'none',
     privilegeDenied: 'disable',
+    actionName: '',
+    actionBinding: 'bound',
+    actionParameters: '',
+    resultProperty: '',
 };
 
 /**
@@ -1159,6 +1163,373 @@ async function main() {
         time.pending() === afterFirst,
         `${afterFirst} → ${time.pending()}`,
     );
+
+    /* ------------------------------------------------------- 0.2.0: the action */
+    {
+
+        /*
+         * A press that calls a Dataverse action, answered by the rig's copy of the
+         * template's action stub — the refusals in the order and the words the
+         * server used when pcf-hierarchy-view and pcf-row-commands probed it. The
+         * record and the address are what SPEC.md's 0.2.0 probe measured on a form:
+         * `contextInfo` with a bare id, `accounts`/`accountid` from metadata.
+         */
+        const ORG = 'https://org.example';
+        const RECORD = 'aaaa0000-0000-0000-0000-000000000001';
+        const onRecord = { entityTypeName: 'account', entityId: RECORD };
+        const ACTIONS = {
+            pcfhub_Run: {
+                boundTo: 'account',
+                parameters: {
+                    Note: { type: 'Edm.String', optional: true },
+                    Record: { type: 'Microsoft.Dynamics.CRM.crmbaseentity', optional: true },
+                },
+                response: [],
+            },
+            pcfhub_Ask: { boundTo: 'account', parameters: {}, response: ['Message'], answer: () => ({ Message: 'Approved by the rule' }) },
+            pcfhub_Quiet: { boundTo: 'account', parameters: {}, response: ['Message'], answer: () => ({}) },
+            pcfhub_Global: { parameters: { Note: { type: 'Edm.String', optional: true } }, response: [] },
+            pcfhub_Refuse: {
+                boundTo: 'account',
+                parameters: {},
+                response: [],
+                refuse: () => ({ status: 400, code: '0x80040265', message: 'The account is on credit hold.' }),
+            },
+        };
+        const withAction = (inputs, extra = {}) => mount({
+            clientUrl: ORG,
+            contextInfo: onRecord,
+            actions: ACTIONS,
+            ...extra,
+            inputs: { actionName: '', actionBinding: 'bound', actionParameters: '', resultProperty: '', ...inputs },
+        });
+        const posts = (handle) => handle.calls().filter((call) => call.indexOf('fetch("POST ') === 0);
+        const bodies = (handle) => handle.calls().filter((call) => call.indexOf('fetch.body(') === 0)
+            .map((call) => JSON.parse(call.slice('fetch.body('.length, -1)));
+        const failed = (handle) => handle.container.classList.contains('FormActionButton--error');
+
+        /** Long enough for metadata, the POST, its body and the finish — every link is a microtask. */
+        async function drained() {
+            for (let turn = 0; turn < 40; turn += 1) {
+                await Promise.resolve();
+            }
+        }
+
+        const plainButton = withAction({});
+
+        plainButton.press();
+        await drained();
+
+        check(
+            '0.2.0: with no action name a press fetches nothing — 0.1.0\'s button exactly',
+            plainButton.calls().every((call) => call.indexOf('fetch') !== 0) && plainButton.outputs().actionStatus === '',
+            plainButton.calls().join(' → '),
+        );
+
+        check(
+            'the two new outputs are strings from the start, never undefined',
+            mount({}).outputs().actionStatus === '' && mount({}).outputs().actionResult === '',
+        );
+
+        const bound = withAction({ actionName: 'pcfhub_Run', actionParameters: '{"Note":"from {id}","Record":"{record}"}' });
+
+        bound.press();
+
+        check(
+            'a bound press is busy at once — spinner, aria-busy, "Running…" — and the caption stays',
+            bound.button().disabled === true && bound.button().getAttribute('aria-busy') === 'true'
+                && bound.status() === 'resx:FormActionButton_Running' && bound.caption() === 'Submit',
+            `${bound.status()} | ${bound.caption()}`,
+        );
+
+        await drained();
+
+        check(
+            'and calls the action on the record, qualified, after the press\'s own outputs',
+            posts(bound).length === 1
+                && posts(bound)[0] === `fetch("POST /api/data/v9.2/accounts(${RECORD})/Microsoft.Dynamics.CRM.pcfhub_Run")`
+                && bound.calls().indexOf('notifyOutputChanged') < bound.calls().indexOf(posts(bound)[0]),
+            bound.calls().join(' → '),
+        );
+
+        check(
+            '{id} is filled in text and {record} becomes the typed reference the server insists on',
+            JSON.stringify(bodies(bound)[0]) === JSON.stringify({
+                Note: `from ${RECORD}`,
+                Record: { '@odata.type': 'Microsoft.Dynamics.CRM.account', accountid: RECORD },
+            }),
+            JSON.stringify(bodies(bound)),
+        );
+
+        check(
+            'a 204 says "Sent.", the button comes back, and actionStatus carries the press it reports',
+            bound.status() === 'resx:FormActionButton_Sent' && bound.button().disabled === false
+                && bound.outputs().actionStatus === '1|ok' && bound.outputs().actionResult === '' && !failed(bound),
+            JSON.stringify(bound.outputs()),
+        );
+
+        check(
+            'and notifies twice in all: once for the press, once for the answer',
+            bound.notifications() === 2,
+            `${bound.notifications()}`,
+        );
+
+        bound.press();
+        await drained();
+
+        check(
+            'a second identical call is a second change: 2|ok',
+            bound.outputs().actionStatus === '2|ok' && posts(bound).length === 2,
+            bound.outputs().actionStatus,
+        );
+
+        const asked = withAction({ actionName: 'pcfhub_Ask', resultProperty: 'Message' });
+
+        asked.press();
+        await drained();
+
+        check(
+            'a named response property is what the button says, and what actionResult carries',
+            asked.status() === 'Approved by the rule' && asked.outputs().actionResult === 'Approved by the rule'
+                && asked.outputs().actionStatus === '1|ok',
+            `${asked.status()} | ${JSON.stringify(asked.outputs())}`,
+        );
+
+        const quiet = withAction({ actionName: 'pcfhub_Quiet' });
+
+        quiet.press();
+        await drained();
+
+        check(
+            'a 200 with nothing named says "Done."',
+            quiet.status() === 'resx:FormActionButton_Done',
+            quiet.status(),
+        );
+
+        const unbound = withAction(
+            { actionName: 'pcfhub_Global', actionBinding: 'unbound', actionParameters: '{"Note":"plain"}' },
+            { contextInfo: { entityTypeName: 'account', entityId: null } },
+        );
+
+        check(
+            'an unbound action that names no record is not blocked on a new record',
+            unbound.button().disabled === false && unbound.status() === '',
+            unbound.status(),
+        );
+
+        unbound.press();
+        await drained();
+
+        check(
+            'and is called by its name alone',
+            posts(unbound)[0] === 'fetch("POST /api/data/v9.2/pcfhub_Global")' && unbound.outputs().actionStatus === '1|ok',
+            unbound.calls().join(' → '),
+        );
+
+        const misspelt = withAction({ actionName: 'pcfhub_run' });
+
+        misspelt.press();
+        await drained();
+
+        check(
+            'a name another case refuses is the server\'s 404 plus the case-sensitivity hint, as a failure',
+            /^Resource not found for the segment 'Microsoft\.Dynamics\.CRM\.pcfhub_run'\. resx:FormActionButton_ActionNameHint$/.test(misspelt.status())
+                && failed(misspelt) && misspelt.outputs().actionStatus === '1|failed',
+            misspelt.status(),
+        );
+
+        const refused = withAction({ actionName: 'pcfhub_Refuse' });
+
+        refused.press();
+        await drained();
+
+        check(
+            'an action\'s own refusal is said in its own words',
+            refused.status() === 'The account is on credit hold.' && failed(refused) && refused.outputs().actionStatus === '1|failed',
+            refused.status(),
+        );
+
+        const wrongType = withAction({ actionName: 'pcfhub_Run', actionParameters: '{"Note":5}' });
+
+        wrongType.press();
+        await drained();
+
+        check(
+            'a payload fault is the exception\'s own sentence, not the 2 KB message',
+            wrongType.status() === "Cannot convert the literal '5' to the expected type 'Edm.String'.",
+            wrongType.status(),
+        );
+
+        const offline = withAction({ actionName: 'pcfhub_Run' }, { actionStatus: 0 });
+
+        offline.press();
+        await drained();
+
+        check(
+            'offline is a failure with the browser\'s words, and the button comes back',
+            offline.status() === 'Failed to fetch' && failed(offline) && offline.button().disabled === false,
+            offline.status(),
+        );
+
+        const fresh = withAction({ actionName: 'pcfhub_Run' }, { contextInfo: { entityTypeName: 'account', entityId: null } });
+
+        check(
+            'a bound action on a record not saved yet: off, and it says why',
+            fresh.button().disabled === true && fresh.status() === 'resx:FormActionButton_SaveFirst' && !failed(fresh),
+            fresh.status(),
+        );
+
+        fresh.update({ contextInfo: onRecord });
+
+        check(
+            'and the same instance turns on when the first save hands it the id (P1), clearing its sentence',
+            fresh.button().disabled === false && fresh.status() === '',
+            fresh.status(),
+        );
+
+        const linked = withAction(
+            { actionName: 'pcfhub_Global', actionBinding: 'unbound', actionParameters: '{"Note":"{id}"}' },
+            { contextInfo: { entityTypeName: 'account', entityId: null } },
+        );
+
+        check(
+            'an unbound action whose parameters name the record waits for the save as well',
+            linked.button().disabled === true && linked.status() === 'resx:FormActionButton_SaveFirst',
+            linked.status(),
+        );
+
+        const nowhere = withAction({ actionName: 'pcfhub_Run' }, { clientUrl: null });
+        const canvas = withAction({ actionName: 'pcfhub_Run' }, { clientUrl: 'throws' });
+
+        check(
+            'no organisation — no page, or a getClientUrl that throws as canvas\'s does — is off with a sentence',
+            nowhere.button().disabled === true && nowhere.status() === 'resx:FormActionButton_NoOrganisation'
+                && canvas.button().disabled === true && canvas.status() === 'resx:FormActionButton_NoOrganisation',
+            `${nowhere.status()} | ${canvas.status()}`,
+        );
+
+        const badName = withAction({ actionName: 'my action' });
+
+        check(
+            'a name the Web API could never take is refused before any call, as a failure',
+            badName.button().disabled === true && badName.status() === 'resx:FormActionButton_BadName' && failed(badName),
+            badName.status(),
+        );
+
+        const embedded = withAction({ actionName: 'pcfhub_Run', actionParameters: '{"Note":"about {record}"}' });
+
+        embedded.press();
+        await drained();
+
+        check(
+            '{record} inside text is refused by the parameters, not sent',
+            embedded.status() === 'resx:FormActionButton_BadParameters' && posts(embedded).length === 0 && failed(embedded),
+            embedded.status(),
+        );
+
+        const vetoed = withAction({ actionName: 'pcfhub_Run' }, { handler: (payload) => payload.preventDefault() });
+
+        vetoed.press();
+        await drained();
+
+        check(
+            'preventDefault() cancels the call as well as the outputs',
+            posts(vetoed).length === 0 && vetoed.notifications() === 0 && vetoed.outputs().actionStatus === '',
+            vetoed.calls().join(' → '),
+        );
+
+        const warnings = [];
+        const warn = console.warn;
+
+        console.warn = (...args) => warnings.push(args.join(' '));
+
+        const rival = withAction({ actionName: 'pcfhub_Ask', resultProperty: 'Message' }, {
+            handler: (payload) => {
+                payload.setBusy('Mine');
+                payload.setResult({ ok: false, message: 'Mine too' });
+            },
+        });
+
+        rival.press();
+        await drained();
+        console.warn = warn;
+
+        check(
+            'a handler\'s setBusy/setResult are refused out loud on a button with an action — the call reports itself',
+            rival.status() === 'Approved by the rule' && !failed(rival)
+                && warnings.filter((line) => /setBusy\(\) was ignored|setResult\(\) was ignored/.test(line)).length === 2,
+            `${rival.status()} | ${warnings.length} warning(s)`,
+        );
+
+        const twice = withAction({ actionName: 'pcfhub_Run' });
+
+        twice.press();
+        twice.press();
+        await drained();
+
+        check(
+            'a second click while the call is in flight calls nothing',
+            posts(twice).length === 1,
+            `${posts(twice).length} call(s)`,
+        );
+
+        const left = withAction({ actionName: 'pcfhub_Run' });
+
+        left.press();
+        left.destroy();
+        await drained();
+
+        check(
+            'an answer for a control that has been destroyed writes nothing',
+            left.status() === 'resx:FormActionButton_Running' && left.notifications() === 1,
+            `${left.status()} | ${left.notifications()}`,
+        );
+
+        const fromResource = withAction(
+            { actionName: 'pcfhub_Run', actionParameters: 'pcfhub_/fab/params.json' },
+            { webResources: { 'pcfhub_/fab/params.json': ' {"Note":"from a web resource, {id}"} ' } },
+        );
+
+        fromResource.press();
+        await drained();
+        fromResource.press();
+        await drained();
+
+        check(
+            'parameters too long for the form come from a web resource, fetched once and kept',
+            fromResource.calls().filter((call) => call.indexOf('fetch("/WebResources/') === 0).length === 1
+                && bodies(fromResource).length === 2 && bodies(fromResource)[1].Note === `from a web resource, ${RECORD}`,
+            fromResource.calls().filter((call) => call.indexOf('fetch') === 0).join(' → '),
+        );
+
+        const missing = withAction({ actionName: 'pcfhub_Run', actionParameters: 'pcfhub_/fab/none.json' });
+
+        missing.press();
+        await drained();
+        missing.press();
+        await drained();
+
+        check(
+            'a web resource that is not there says so — and is asked for again on the next press',
+            missing.status() === 'resx:FormActionButton_ParametersMissing' && posts(missing).length === 0
+                && missing.calls().filter((call) => call.indexOf('fetch("/WebResources/') === 0).length === 2,
+            missing.status(),
+        );
+
+        const hung = withAction({ actionName: 'pcfhub_Run' });
+
+        global.fetch = () => new Promise(() => {});
+        hung.press();
+        await drained();
+        time.advance(61000);
+
+        check(
+            'a call that never answers is released by the 60-second watchdog, with the stalled sentence',
+            hung.button().disabled === false && hung.status() === 'resx:FormActionButton_Stalled' && failed(hung),
+            hung.status(),
+        );
+
+    }
 
     disposeAll();
 }

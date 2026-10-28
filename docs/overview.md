@@ -1,14 +1,16 @@
 ---
 title: Overview
-description: A button for a model-driven form that hands the press to your form script — with a confirmation, a busy state, and an answer.
+description: A button for a model-driven form that calls a Dataverse action — and through it a flow — or hands the press to your form script, with a confirmation, a busy state, and an answer.
 order: 1
 ---
 
 # Form Action Button
 
-A button you put on a model-driven form. Pressing it raises an event your form
-script handles, and your handler can answer: veto the press, say it is working,
-or report that it failed.
+A button you put on a model-driven form. Name a Dataverse action and pressing it
+calls that action on the record — so a Power Automate flow or a plug-in does the
+work, with no script at all. Or leave the action out, and the press raises an
+event your form script handles: your handler can veto the press, say it is
+working, or report that it failed.
 
 :::callout{type=warning}
 **Reference example · built with AI.** This control was written with AI (Claude) and tested on a live Dataverse form; its code has not been reviewed line by line. It is published as a worked example and is not maintained — read the source and [SPEC.md](https://github.com/pcfhub/pcf-form-action-button/blob/main/SPEC.md) (what was measured on the form) before you use it. Fixes are not guaranteed.
@@ -33,6 +35,12 @@ for most buttons. This one is for the times it is not:
 
 ## What it does
 
+- **Calls a Dataverse action, with no script.** Put your Custom API's name in
+  **Action name** and every press calls it on the record — a flow on Power
+  Automate's *When an action is performed* trigger, or a plug-in, does the
+  rest. The button shows *Running…*, then *Sent.*, the action's own answer, or
+  the server's reason in red. New in 0.2.0; see
+  [Model-driven apps](model-driven#call-an-action-no-script).
 - **Raises an event your script handles.** `addEventHandler("onAction", fn)`,
   with a payload carrying which press this was and which record it happened on.
 - **Confirms before acting**, with the platform's own dialog. Where the host has
@@ -54,13 +62,14 @@ for most buttons. This one is for the times it is not:
 
 ## What it is not
 
-It does not call Dataverse. Your handler already has `Xrm.WebApi`, the user's
-context, and `formContext` — everything this control cannot have, because a code
-component is expected to run where there is no form. This control's job is to
-get the press to your handler cleanly, and to look right doing it.
+It is not a way to read or change records. It calls the one action you name, and
+nothing else; what that action does is its flow's or its plug-in's. For anything
+that needs `formContext` — saving, setting a field, opening a dialog — your form
+script still does it, because a code component is expected to run where there is
+no form and is never handed one.
 
-It does not decide what the button does. There is no *action* property, no
-formula, no URL. What happens is your script.
+It does not see what the flow did. A flow runs after the action is accepted, on
+its own, so the button can say the call was sent — not that the flow finished.
 
 ## Getting there
 

@@ -224,4 +224,79 @@
   <data name="FormActionButton_NoPrivilege" xml:space="preserve">
     <value>Vous n’avez pas l’autorisation d’effectuer cette action.</value>
   </data>
+  <data name="actionName_Name" xml:space="preserve">
+    <value>Nom de l'action</value>
+  </data>
+  <data name="actionName_Desc" xml:space="preserve">
+    <value>Le nom unique d'une action Dataverse — votre Custom API ou un message de la plateforme — appelée à chaque clic validé. Respecte la casse. Laissez vide pour un bouton qui ne fait que déclencher son événement.</value>
+  </data>
+  <data name="actionBinding_Name" xml:space="preserve">
+    <value>Liaison de l'action</value>
+  </data>
+  <data name="actionBinding_Desc" xml:space="preserve">
+    <value>Liée : appelée sur l'enregistrement de ce formulaire. Non liée : appelée seule.</value>
+  </data>
+  <data name="binding_Bound" xml:space="preserve">
+    <value>Liée à cet enregistrement</value>
+  </data>
+  <data name="binding_Unbound" xml:space="preserve">
+    <value>Non liée</value>
+  </data>
+  <data name="actionParameters_Name" xml:space="preserve">
+    <value>Paramètres de l'action</value>
+  </data>
+  <data name="actionParameters_Desc" xml:space="preserve">
+    <value>Les paramètres en JSON, ou le nom d'une ressource web qui les contient (un formulaire garde ici 100 caractères). {id} insère l'ID de l'enregistrement dans un texte ; une valeur exactement égale à "{record}" envoie l'enregistrement comme référence.</value>
+  </data>
+  <data name="resultProperty_Name" xml:space="preserve">
+    <value>Propriété de résultat</value>
+  </data>
+  <data name="resultProperty_Desc" xml:space="preserve">
+    <value>Une propriété de réponse de l'action dont le bouton affiche la valeur après l'appel.</value>
+  </data>
+  <data name="actionStatus_Name" xml:space="preserve">
+    <value>État de l'action</value>
+  </data>
+  <data name="actionStatus_Desc" xml:space="preserve">
+    <value>« &lt;nombre de clics&gt;|ok » ou « &lt;nombre de clics&gt;|failed » une fois que l'action a répondu.</value>
+  </data>
+  <data name="actionResult_Name" xml:space="preserve">
+    <value>Résultat de l'action</value>
+  </data>
+  <data name="actionResult_Desc" xml:space="preserve">
+    <value>La valeur de la propriété de résultat du dernier appel, ou vide.</value>
+  </data>
+  <data name="FormActionButton_Running" xml:space="preserve">
+    <value>Exécution…</value>
+  </data>
+  <data name="FormActionButton_Sent" xml:space="preserve">
+    <value>Envoyé.</value>
+  </data>
+  <data name="FormActionButton_SaveFirst" xml:space="preserve">
+    <value>Enregistrez d'abord l'enregistrement.</value>
+  </data>
+  <data name="FormActionButton_NoOrganisation" xml:space="preserve">
+    <value>Ce bouton appelle une action Dataverse, et il n'y a pas de Dataverse ici.</value>
+  </data>
+  <data name="FormActionButton_NoAddress" xml:space="preserve">
+    <value>L'adresse des enregistrements de cette table n'a pas pu être lue.</value>
+  </data>
+  <data name="FormActionButton_BadName" xml:space="preserve">
+    <value>« {0} » n'est pas un nom d'action accepté par l'API web.</value>
+  </data>
+  <data name="FormActionButton_BadResult" xml:space="preserve">
+    <value>« {0} » n'est pas un nom de propriété de réponse.</value>
+  </data>
+  <data name="FormActionButton_BadParameters" xml:space="preserve">
+    <value>Les paramètres de l'action n'ont pas pu être lus : {0}</value>
+  </data>
+  <data name="FormActionButton_ParametersMissing" xml:space="preserve">
+    <value>La ressource web {0}, qui contient les paramètres de l'action, est introuvable.</value>
+  </data>
+  <data name="FormActionButton_ParametersUnreadable" xml:space="preserve">
+    <value>La ressource web {0}, qui contient les paramètres de l'action, n'a pas pu être lue.</value>
+  </data>
+  <data name="FormActionButton_ActionNameHint" xml:space="preserve">
+    <value>Vérifiez le nom de l'action, {0}, et si elle est liée : les noms respectent la casse.</value>
+  </data>
 </root>

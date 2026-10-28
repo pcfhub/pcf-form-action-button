@@ -21,10 +21,11 @@ a stable API.
 ## Model-driven only
 
 Canvas is not supported. The control would load there — it binds a column, which
-canvas allows — but three things it depends on are simply absent: the
-confirmation dialog, `context.utils` for the privilege check, and the record
-identity in the event payload. What is left is a button that raises an event you
-have no Power Fx binding for.
+canvas allows — but four things it depends on are simply absent: the
+confirmation dialog, `context.utils` for the privilege check, the record
+identity in the event payload, and an organisation to call an action on (a
+button with **Action name** filled in is off there, and says so). What is left
+is a button that raises an event you have no Power Fx binding for.
 
 Use [Action Button](https://pcfhub.dev/components/pcf-action-button) in canvas
 instead. It is built for that host and declares `OnSelect`.
@@ -32,11 +33,52 @@ instead. It is built for that host and declares `OnSelect`.
 Power Pages is not supported either, for the same reasons and one more: it does
 not support `context.utils` at all.
 
-## It does not talk to Dataverse
+## It calls one action, and that is all it says to Dataverse
 
-No `WebAPI` feature is declared and none is used. Your handler already has
-`Xrm.WebApi` and the user's own context — see the worked example in
-[Model-driven apps](model-driven).
+Since 0.2.0 the button can call the Dataverse action you name. That is the
+whole of its traffic: it reads no records and writes none, and declares no
+`WebAPI` feature — `context.webAPI` cannot call an action, so the call is a
+request to the organisation the form is on, as the signed-in user. Anything
+else is your handler's, which already has `Xrm.WebApi`.
+
+## It cannot see what a flow did
+
+A flow on *When an action is performed* runs **after** the action is accepted,
+on its own. The button says *Sent.* when Dataverse takes the call; whether the
+flow then succeeds is in the flow's run history, not on the form. If the user
+has to know the outcome, put a plug-in behind the action and name its answer in
+**Result property** — that answer comes back on the call.
+
+## The action sees the saved record
+
+The call goes to the record as it is stored. Changes the user has typed and not
+saved are not part of it, and a bound action on a new record cannot run at all —
+the button is off and says *Save the record first.* until the first save, after
+which it comes on by itself. Save before pressing, or have your `onAction`
+handler stop the press (`preventDefault()`) while the form has unsaved changes.
+
+## The form is not refreshed for you
+
+If a plug-in behind the action changes the record, the form shows the old values
+until it re-reads. The button never refreshes the form — a refresh with unsaved
+changes asks the user about them, which is not a button's decision. Refresh from
+a script when **Action status** reports `|ok`; the snippet is in
+[Model-driven apps](model-driven#the-two-outputs-and-refreshing-the-form-afterwards).
+
+## Parameters are fixed when you configure them
+
+**Action parameters** are what you typed in the form designer, with `{id}` and
+`{record}` filled in — not the values of the record's columns. A flow that needs
+a column reads it from the record; that is what `{record}` and a bound action
+are for. A form keeps 100 characters of the property, so longer parameters go in
+a web resource whose name you put there instead.
+
+## A button with an action reports for itself
+
+On a button with **Action name** filled in, your handler's `setBusy()` and
+`setResult()` are ignored, with a warning in the console: the call shows its own
+progress and its own result, and two voices on one status line would contradict
+each other. `preventDefault()` still works — it stops the call.
 
 ## `preventDefault()` is synchronous only
 

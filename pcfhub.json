@@ -2,16 +2,20 @@
   "schemaVersion": 1,
   "slug": "pcf-form-action-button",
   "name": "Form Action Button",
-  "tagline": "A model-driven form button that raises an event a form script can handle, confirm and answer.",
-  "summary": "A button you place on a model-driven form, beside the field or in the section it belongs to rather than in the command bar. Pressing it raises an event your form script handles, and the handler can answer: veto the press, show a busy state, or report a failure.\n\n- An optional confirmation before acting, using the platform's own dialog\n- A spinner and a status line while the handler is working\n\nModel-driven apps only. For a canvas app, use Action Button.",
+  "tagline": "A model-driven form button that calls a Dataverse action — and through it a flow — or raises an event a form script can answer.",
+  "summary": "A button you place on a model-driven form, beside the field or in the section it belongs to rather than in the command bar. Name a Dataverse action and pressing it calls that action on the record, so a Power Automate flow or a plug-in does the work with no script. Or leave the action out, and the press raises an event your form script handles: the handler can veto the press, show a busy state, or report a failure.\n\n- Calls your Custom API, bound to the record or unbound, and shows Sent, its answer, or the server's reason\n- An optional confirmation before acting, using the platform's own dialog\n- A spinner and a status line while the work runs\n\nModel-driven apps only. For a canvas app, use Action Button.",
   "category": "utilities",
-  "hosts": ["model-driven"],
+  "hosts": [
+    "model-driven"
+  ],
   "tags": [
     "button",
     "events",
     "confirmation",
     "client-api",
     "accessible",
+    "power-automate",
+    "custom-api",
     "no-react"
   ],
   "supportLevel": "reference",
@@ -49,6 +53,7 @@
     "datasetFixture": "demo/record.json",
     "limitations": [
       "There is no form script behind this demo. On a real form the press reaches a handler registered with addEventHandler(\"onAction\", fn), and that handler is the whole point of the control — here it reaches nothing, so what you are pressing is the button rather than the action.",
+      "Calling a Dataverse action (Action name, new in 0.2.0) is not part of any preset. The demo has no Dataverse actions to call, and no flow to run behind one — on a form the press calls your Custom API and a flow on When an action is performed does the work. Model-driven apps describes the set-up.",
       "The confirmation dialog is the demo's stand-in for the platform's. The control finds openConfirmDialog, asks it, and raises onAction only on a confirm, which is its path on a form too; what differs is the dialog itself, drawn by the demo rather than by the app, so it does not carry your app's theme. The inline two-step the control falls back to on a host with no dialog is not shown here — the screenshots have it.",
       "The busy and result states cannot be reached from a preset. A handler drives them by calling setBusy() and setResult() back into the control, and there is no handler here to call them.",
       "Privilege gating works here. The demo's stand-in Dataverse puts the button on an account form, published through mode.contextInfo as a form does, and its user has every privilege on account except Delete. The No delete privilege preset asks for Delete, so utils.hasEntityPrivilege says no and the button is drawn disabled; set Privilege denied to Hide and it goes, or set Require privilege to Write and it comes back. The other presets require none, as most buttons do."

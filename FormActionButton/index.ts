@@ -1,5 +1,17 @@
 import { IInputs, IOutputs } from './generated/ManifestTypes';
-import { probeDestroy, probeInit, probeView } from './probe'; // PROBE 0.1.9 — delete before 0.2.0
+import { ActionDef, ActionFetch, RecordKeys, Refusal, callAction } from './lib/web-api-action/action';
+import { organisationUrl } from './lib/web-api-action/clientUrl';
+import { DefinitionsFetch, MetadataUtils, loadRecordKeys } from './lib/web-api-action/keys';
+import { SourceFetch, loadSource } from './lib/config-source/load';
+import {
+    ActionSetting,
+    ParametersRead,
+    isInlineParameters,
+    needsRecord,
+    readActionSetting,
+    readParameters,
+    statusText,
+} from './press';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -175,6 +187,16 @@ interface FormActionButtonEvents {
  */
 type Phase = 'idle' | 'armed' | 'asking' | 'busy';
 
+/** How an action's call ended: what the button says, and what the outputs carry. */
+interface Finish {
+    ok: boolean;
+    message: string;
+    result: string;
+}
+
+/** Parameters that could not be had at all — a web resource missing or unreadable — say a whole sentence of their own. */
+type ParametersLoad = ParametersRead | { ok: false; reason: string; whole: true };
+
 /**
  * A button, for a model-driven form.
  *
@@ -203,6 +225,12 @@ type Phase = 'idle' | 'armed' | 'asking' | 'busy';
  * write.** Two consecutive confirmed presses both writing `lastAction:
  * "confirm"` are one `OnOutputChange` and one silence, and the maker sees a
  * button that works once.
+ *
+ * **Since 0.2.0 a press can also call a Dataverse action**, named in
+ * `actionName`, after the event and the outputs — so a flow on *When an action
+ * is performed*, or a plug-in, does the work with no form script. Measured on a
+ * form before it was written (SPEC.md, *0.2.0, measured before it is
+ * written*); the call is `lib/web-api-action`, shared with pcf-row-commands.
  */
 export class FormActionButton implements ComponentFramework.StandardControl<IInputs, IOutputs> {
     private container!: HTMLDivElement;
@@ -296,7 +324,31 @@ export class FormActionButton implements ComponentFramework.StandardControl<IInp
     private writeSignal = false;
     private entityTypeName: string | undefined;
     private entityId: string | undefined;
-    private probeInstance = 0; // PROBE 0.1.9
+
+    /*
+     * 0.2.0: the action a press calls, read on every render. The parameters and
+     * the table's address are loaded at the first press that needs them and
+     * kept, so a form that is only looked at fetches nothing.
+     */
+    private actionSetting: ActionSetting = { kind: 'none' };
+    private parametersText = '';
+    private clientUrl: string | null = null;
+    private metadataUtils: MetadataUtils | undefined;
+    private parametersLoad: { key: string; read: Promise<ParametersLoad> } | null = null;
+    private keysLoads = new Map<string, Promise<RecordKeys | null>>();
+
+    /** Why the button is off for its action, as the sentence it says — or `null`. */
+    private blocked: string | null = null;
+
+    /** The sentence `blocked` last put in the status line, so a render repeats nothing. */
+    private blockedShown: string | null = null;
+
+    /*
+     * The two 0.2.0 outputs. Strings from the start, for the reason
+     * `pressCount` is a number from the start.
+     */
+    private actionStatus = '';
+    private actionResult = '';
 
     public init(
         context: ComponentFramework.Context<IInputs>,
@@ -360,14 +412,11 @@ export class FormActionButton implements ComponentFramework.StandardControl<IInp
 
         this.container.append(this.button, this.status);
 
-        this.probeInstance = probeInit(); // PROBE 0.1.9
         this.render(context);
-        probeView(this.probeInstance, context as unknown as ComponentFramework.Context<unknown>); // PROBE 0.1.9
     }
 
     public updateView(context: ComponentFramework.Context<IInputs>): void {
         this.render(context);
-        probeView(this.probeInstance, context as unknown as ComponentFramework.Context<unknown>); // PROBE 0.1.9
     }
 
     /**
@@ -380,7 +429,12 @@ export class FormActionButton implements ComponentFramework.StandardControl<IInp
      * same thing to the platform and only one of them reads like a decision.
      */
     public getOutputs(): IOutputs {
-        const outputs: IOutputs = { pressCount: this.pressCount, lastAction: this.lastAction };
+        const outputs: IOutputs = {
+            pressCount: this.pressCount,
+            lastAction: this.lastAction,
+            actionStatus: this.actionStatus,
+            actionResult: this.actionResult,
+        };
 
         if (this.signal !== undefined) {
             outputs.signal = this.signal;
@@ -401,7 +455,6 @@ export class FormActionButton implements ComponentFramework.StandardControl<IInp
          * nothing stops it calling them.
          */
         this.destroyed = true;
-        probeDestroy(this.probeInstance); // PROBE 0.1.9
         this.clearConfirmTimer();
         this.clearBusyTimer();
 
@@ -417,6 +470,7 @@ export class FormActionButton implements ComponentFramework.StandardControl<IInp
 
         this.applyTheme(context);
         this.readIdentity(context);
+        this.readAction(context);
 
         const allowed = this.hasPrivilege(context);
         const hidden =
@@ -431,14 +485,15 @@ export class FormActionButton implements ComponentFramework.StandardControl<IInp
         }
 
         /*
-         * Two reasons to be inert, and they are different reasons.
+         * Three reasons to be inert, and they are different reasons.
          *
          * `mode.isControlDisabled` is the form's own answer — a read-only form,
          * a locked field, a business rule. The privilege check is about the
-         * user's roles and is this control's own. Both land on the same
-         * attribute; only the second one has a sentence to say about itself.
+         * user's roles and is this control's own. And since 0.2.0, `blocked`:
+         * an action that cannot be called here, which is the maker's or the
+         * record's to fix and so the one that says why (`showBlocked`).
          */
-        this.hostInteractive = !context.mode.isControlDisabled && allowed;
+        this.hostInteractive = !context.mode.isControlDisabled && allowed && this.blocked === null;
 
         this.confirmRequired = asBoolean(context.parameters.confirmRequired.raw, false);
         this.writeSignal = asBoolean(context.parameters.writeSignal.raw, false);
@@ -472,6 +527,7 @@ export class FormActionButton implements ComponentFramework.StandardControl<IInp
 
         this.applyIcon(context.parameters.icon.raw);
         this.paint();
+        this.showBlocked();
 
         /*
          * `dir` on the control's own root rather than a class, so a nested
@@ -479,6 +535,63 @@ export class FormActionButton implements ComponentFramework.StandardControl<IInp
          * knowing how far up the ancestor is.
          */
         this.container.dir = context.userSettings.isRTL ? 'rtl' : 'ltr';
+    }
+
+    /**
+     * 0.2.0: what a press calls, and whether it can be called here.
+     *
+     * Three reasons the button is off *for its action*, each with a sentence:
+     * a name the Web API could never take, a host with no Dataverse behind it
+     * (canvas, PCFHub's demo — `organisationUrl` answers `null`), and a call
+     * that needs the record on a record not saved yet. The last one clears on
+     * the same instance after the first save: the platform hands it the new id
+     * without a remount (P1).
+     */
+    private readAction(context: ComponentFramework.Context<IInputs>): void {
+        const parameters = context.parameters.actionParameters?.raw;
+
+        this.actionSetting = readActionSetting(
+            context.parameters.actionName?.raw,
+            context.parameters.actionBinding?.raw,
+            context.parameters.resultProperty?.raw,
+        );
+        this.parametersText = typeof parameters === 'string' ? parameters.trim() : '';
+        this.clientUrl = organisationUrl(context);
+        this.metadataUtils = (context as unknown as { utils?: MetadataUtils }).utils;
+
+        const setting = this.actionSetting;
+
+        if (setting.kind === 'none') {
+            this.blocked = null;
+        } else if (setting.kind === 'invalid') {
+            this.blocked = this.resources.getString(setting.key).replace('{0}', setting.detail);
+        } else if (this.clientUrl === null) {
+            this.blocked = this.resources.getString('FormActionButton_NoOrganisation');
+        } else if (needsRecord(setting, this.parametersText) && this.entityId === undefined) {
+            this.blocked = this.resources.getString('FormActionButton_SaveFirst');
+        } else {
+            this.blocked = null;
+        }
+    }
+
+    /**
+     * The blocked sentence in the status line, once. A render runs on every
+     * change anywhere on the form, and a live region that announced on each
+     * would talk over everything else. Cleared when the reason goes — unless
+     * something else has spoken since, which is then the newer news.
+     */
+    private showBlocked(): void {
+        if (this.blocked === this.blockedShown) {
+            return;
+        }
+
+        if (this.blocked !== null) {
+            this.announceText(this.blocked, this.actionSetting.kind === 'invalid');
+        } else if (this.status.textContent === this.blockedShown) {
+            this.announceText('', false);
+        }
+
+        this.blockedShown = this.blocked;
     }
 
     /**
@@ -913,6 +1026,16 @@ export class FormActionButton implements ComponentFramework.StandardControl<IInp
         }
 
         this.notifyOutputChanged();
+
+        /*
+         * 0.2.0: the action, after the outputs — the press has happened whatever
+         * the call then does, and `actionStatus` reports the call on its own. A
+         * veto returned above, so `preventDefault()` cancels the call too; a
+         * handler that threw did not veto, so the call goes ahead.
+         */
+        if (this.actionSetting.kind === 'action') {
+            this.runAction(this.actionSetting, token, nextCount);
+        }
     }
 
     /**
@@ -927,6 +1050,20 @@ export class FormActionButton implements ComponentFramework.StandardControl<IInp
         pressCount: number,
         token: number,
     ): ActionPayload {
+        /*
+         * A button with an action owns its busy state and its result: the call
+         * starts as the handler returns and reports itself. A handler's own
+         * `setBusy`/`setResult` would race it for the same two slots, so for
+         * such a press they are refused, out loud, rather than half-applied.
+         */
+        const owned = this.actionSetting.kind === 'action';
+        const refuse = (name: string): void => {
+            console.warn(
+                `FormActionButton: ${name}() was ignored — this button calls an action, and the call reports its own`
+                    + ' result. Use preventDefault() to stop the call, or leave Action name empty to answer from the handler.',
+            );
+        };
+
         return {
             action,
             pressCount,
@@ -952,6 +1089,11 @@ export class FormActionButton implements ComponentFramework.StandardControl<IInp
                     return;
                 }
 
+                if (owned) {
+                    refuse('setBusy');
+                    return;
+                }
+
                 /*
                  * The handler's sentence goes to the live region and nowhere
                  * else — the caption keeps saying what the button is. Nothing
@@ -968,22 +1110,16 @@ export class FormActionButton implements ComponentFramework.StandardControl<IInp
                 this.paint();
                 this.announceText(busyText, false);
 
-                this.clearBusyTimer();
-                this.busyTimer = window.setTimeout(() => {
-                    this.busyTimer = undefined;
-
-                    if (this.destroyed || token !== this.token || this.phase !== 'busy') {
-                        return;
-                    }
-
-                    this.phase = 'idle';
-                    this.paint();
-                    this.announce('FormActionButton_Stalled', true);
-                }, BUSY_TIMEOUT_MS);
+                this.watchBusy(token);
             },
 
             setResult: (result: { ok: boolean; message?: string }): void => {
                 if (this.destroyed || token !== this.token) {
+                    return;
+                }
+
+                if (owned) {
+                    refuse('setResult');
                     return;
                 }
 
@@ -1002,6 +1138,185 @@ export class FormActionButton implements ComponentFramework.StandardControl<IInp
                 this.announceText(message, failed);
             },
         };
+    }
+
+    /**
+     * Release a button nobody reports back for, after `BUSY_TIMEOUT_MS`.
+     * A handler's `setBusy()` and the control's own call share it.
+     */
+    private watchBusy(token: number): void {
+        this.clearBusyTimer();
+        this.busyTimer = window.setTimeout(() => {
+            this.busyTimer = undefined;
+
+            if (this.destroyed || token !== this.token || this.phase !== 'busy') {
+                return;
+            }
+
+            this.phase = 'idle';
+            this.paint();
+            this.announce('FormActionButton_Stalled', true);
+        }, BUSY_TIMEOUT_MS);
+    }
+
+    /**
+     * 0.2.0: call the action once for a committed press, and say how it went.
+     *
+     * Busy for the length of it — the spinner, `aria-busy`, "Running…" — under
+     * the same watchdog a handler's `setBusy()` gets, and latched to its press
+     * the way every payload callback is: an answer for a press that is over is
+     * dropped.
+     *
+     * What the button says afterwards: the response property the maker named,
+     * when the action returns one; **"Sent."** for a 204 — an action with no
+     * response properties, which is what a flow's trigger is, and whose flow
+     * runs afterwards on its own; "Done." for another success; and the server's
+     * own sentence for a refusal, with the case-sensitivity hint when the name
+     * is what it could not find (pcf-row-commands P2).
+     */
+    private runAction(setting: Extract<ActionSetting, { kind: 'action' }>, token: number, pressCount: number): void {
+        const base = this.clientUrl as string;
+        const id = this.entityId ?? '';
+        const table = this.entityTypeName;
+        const getString = (key: string): string => this.resources.getString(key);
+
+        this.clearConfirmTimer();
+        this.phase = 'busy';
+        this.paint();
+        this.announce('FormActionButton_Running');
+        this.watchBusy(token);
+
+        const address = table === undefined ? Promise.resolve(null) : this.recordKeys(base, table);
+
+        void Promise.all([this.parameters(base), address])
+            .then(([read, keys]): Finish | Promise<Finish> => {
+                if (!read.ok) {
+                    return {
+                        ok: false,
+                        message: 'whole' in read ? read.reason : getString('FormActionButton_BadParameters').replace('{0}', read.reason),
+                        result: '',
+                    };
+                }
+
+                if (keys === null && needsRecord(setting, this.parametersText)) {
+                    return { ok: false, message: getString('FormActionButton_NoAddress'), result: '' };
+                }
+
+                const def: ActionDef = { name: setting.name, bound: setting.bound, parameters: read.parameters, result: setting.result };
+
+                return callAction(fetch as unknown as ActionFetch, base, def, keys ?? { table: table ?? '', set: '', primaryId: '' }, id)
+                    .then((outcome): Finish => (outcome.ok
+                        ? {
+                            ok: true,
+                            message: outcome.result ?? getString(outcome.status === 204 ? 'FormActionButton_Sent' : 'FormActionButton_Done'),
+                            result: outcome.result ?? '',
+                        }
+                        : { ok: false, message: this.refusalText(outcome.refusal, setting.name), result: '' }));
+            })
+            .then(
+                (finish) => this.finishAction(token, pressCount, finish),
+                (error: unknown) => this.finishAction(token, pressCount, {
+                    ok: false,
+                    message: describeError(error) || getString('FormActionButton_Failed'),
+                    result: '',
+                }),
+            );
+    }
+
+    /** The answer, on screen and on the outputs — unless its press is over. */
+    private finishAction(token: number, pressCount: number, finish: Finish): void {
+        if (this.destroyed || token !== this.token) {
+            return;
+        }
+
+        this.clearBusyTimer();
+        this.phase = 'idle';
+        this.paint();
+        this.announceText(finish.message, !finish.ok);
+
+        this.actionStatus = statusText(pressCount, finish.ok);
+        this.actionResult = finish.result;
+        this.notifyOutputChanged();
+    }
+
+    /** A refusal as the user reads it, and its code for whoever opens the console. */
+    private refusalText(refusal: Refusal, name: string): string {
+        console.warn(`FormActionButton: the action ${name} was refused`, refusal.status, refusal.code ?? '', refusal.sentence);
+
+        // The server's not-found sentence has no full stop (measured), and the hint follows it on one line.
+        return refusal.nameWrong
+            ? `${refusal.sentence}${/[.!?…]$/.test(refusal.sentence) ? '' : '.'} ${this.resources
+                .getString('FormActionButton_ActionNameHint')
+                .replace('{0}', name)}`
+            : refusal.sentence;
+    }
+
+    /**
+     * The parameters, as JSON: written into the property, or held by the web
+     * resource it names — a form keeps 100 characters of a static value. A web
+     * resource is fetched once and kept; one that could not be had is asked
+     * for again on the next press, so a fix published meanwhile is picked up.
+     */
+    private parameters(base: string): Promise<ParametersLoad> {
+        const text = this.parametersText;
+
+        if (text === '') {
+            return Promise.resolve({ ok: true, parameters: {} });
+        }
+
+        if (isInlineParameters(text)) {
+            return Promise.resolve(readParameters(text));
+        }
+
+        const key = `${base}\u0000${text}`;
+
+        if (this.parametersLoad?.key === key) {
+            return this.parametersLoad.read;
+        }
+
+        const read = loadSource(text, isInlineParameters, base, fetch as unknown as SourceFetch).then((load): ParametersLoad => {
+            if (load.state === 'ready') {
+                return readParameters(load.text.trim());
+            }
+
+            const name = 'name' in load ? load.name : text;
+            const sentence = load.state === 'notFound' ? 'FormActionButton_ParametersMissing' : 'FormActionButton_ParametersUnreadable';
+
+            return { ok: false, reason: this.resources.getString(sentence).replace('{0}', name), whole: true };
+        });
+
+        this.parametersLoad = { key, read };
+        void read.then((result) => {
+            if (!result.ok && this.parametersLoad?.key === key) {
+                this.parametersLoad = null;
+            }
+        });
+
+        return read;
+    }
+
+    /**
+     * A table's entity set and id column — from `getEntityMetadata` on a form,
+     * measured at 0–1 ms (P2) — once per table. A table nobody could describe is
+     * asked about again on the next press, not remembered as unaddressable.
+     */
+    private recordKeys(base: string, table: string): Promise<RecordKeys | null> {
+        const cached = this.keysLoads.get(table);
+
+        if (cached) {
+            return cached;
+        }
+
+        const load = loadRecordKeys(this.metadataUtils, base, fetch as unknown as DefinitionsFetch, table);
+
+        this.keysLoads.set(table, load);
+        void load.then((keys) => {
+            if (keys === null) {
+                this.keysLoads.delete(table);
+            }
+        });
+
+        return load;
     }
 
     private announce(key: string, failed = false): void {

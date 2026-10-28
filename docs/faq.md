@@ -62,20 +62,37 @@ call `setResult()` in a `finally`, or in both branches of your `then`/`catch`.
 
 ## Can I make it do something without writing any JavaScript?
 
-Partly. Switch **Write to the signal column** on and bind it to a dedicated text
-column — every press writes a value there, which a **business rule** or a
-**real-time workflow on update** can react to. The last example in
-[Examples](examples) shows it.
+Yes, since 0.2.0. Put a Dataverse action's name in **Action name** and the
+button calls it — then a **Power Automate flow** on *When an action is
+performed*, or a plug-in, does the work. The steps, including the catalog the
+flow trigger needs, are in
+[Model-driven apps](model-driven#running-a-flow-from-the-button).
 
-That is enough for "set a field when this is pressed". Anything conditional,
-anything that has to report back, and anything that needs to not save the record
-still wants a script.
+Without an action there is still one script-free route: switch **Write to the
+signal column** on and bind it to a dedicated text column — every press writes a
+value there, which a **business rule** or a **real-time workflow on update** can
+react to. The last example in [Examples](examples) shows it.
+
+## It says "Sent." — did my flow run?
+
+*Sent.* means Dataverse accepted the call. A flow on *When an action is
+performed* runs after that, on its own, and the button cannot see it; look in
+the flow's run history. An action with a plug-in behind it can answer instead —
+name its response property in **Result property** and the button says what it
+returned.
+
+## Creating my Custom API failed on a parameter called `Target`.
+
+A bound Custom API cannot have one: the record it is bound to already is its
+`Target`. The flow gets the record from the trigger, so you do not need to pass
+it; call any other parameter something else.
 
 ## Does it save the record?
 
 No. It does not save, refresh, or navigate. If your handler changes fields, the
 form goes dirty and the user saves — or your handler calls
-`formContext.data.save()` itself.
+`formContext.data.save()` itself. An action the button calls sees the record as
+it was last saved, so save first if the flow needs what was just typed.
 
 ## Why are there two outputs?
 

@@ -1,6 +1,6 @@
 # Form Action Button
 
-A model-driven form button that raises an event a form script can handle, confirm and answer.
+A model-driven form button that calls a Dataverse action — and through it a flow — or raises an event a form script can handle, confirm and answer.
 
 > **Reference example · built with AI.** This control was written with AI (Claude) and tested on a live Dataverse form; its code has not been reviewed line by line. It is published as a worked example and is not maintained — read the source and [`SPEC.md`](SPEC.md) (what was measured on the form) before you use it. Fixes are not guaranteed.
 
@@ -18,6 +18,16 @@ recompiles it.
 Puts a button on a model-driven form and hands the press to a form script. The
 script decides what happens; this control's job is to get the press there
 cleanly and to look like the rest of the form doing it.
+
+**Since 0.2.0 it can need no script at all.** Name a Dataverse action in
+`actionName` and every committed press calls it — bound to the form's record or
+unbound — as the same-origin POST `context.webAPI` cannot make, from
+`_template`'s shared `lib/web-api-action` (also `pcf-row-commands`'). A flow on
+Power Automate's *When an action is performed* trigger, or a plug-in, does the
+work; the button is busy while the call runs and then says *Sent.*, the named
+response property, or the server's own refusal. Everything it rests on was
+measured on a form first — `SPEC.md`, *0.2.0, measured before it is written* —
+and that probe was also the first time 0.1.0's event reached a real form script.
 
 It reaches the script three ways at once, because each is missing somewhere. The
 custom `onAction` event carries a payload and is the one worth using; the output
@@ -63,8 +73,14 @@ degrades the asking, not the doing.
 | `writeSignal` | TwoOptions | input | `false` | Write each press into the bound column |
 | `requirePrivilege` | Enum | input | `none` | `none`, `create`, `read`, `write`, `delete`, `append`, `appendTo` |
 | `privilegeDenied` | Enum | input | `disable` | `disable` or `hide`, when the privilege is missing |
+| `actionName` | SingleLine.Text | input | `""` | A Dataverse action to call on every committed press; case-sensitive; empty is none |
+| `actionBinding` | Enum | input | `bound` | `bound` (to the form's record) or `unbound` |
+| `actionParameters` | SingleLine.Text | input | `""` | The body as JSON, or a web resource's name; `{id}`, `"{record}"` |
+| `resultProperty` | SingleLine.Text | input | `""` | A response property the button says after the call |
 | `pressCount` | Whole.None | output | `0` | Increments on every press that commits |
 | `lastAction` | SingleLine.Text | output | `""` | `press` or `confirm` |
+| `actionStatus` | SingleLine.Text | output | `""` | `<pressCount>|ok` or `<pressCount>|failed`, when the call answers |
+| `actionResult` | SingleLine.Text | output | `""` | The result property's value from the last call |
 
 One event, `onAction`, declared as a custom `<event>` — not a
 `<common-event>`, because `addEventHandler` binds by the event's own name and
@@ -77,10 +93,12 @@ cannot be missing, and that is a claim about the types.
 Strings ship in five languages: 1033 English, 3082 Spanish, 1036 French, 1031
 German, 1041 Japanese. Plain DOM, no framework, no platform libraries.
 
-One `<uses-feature>`: `Utility`, `required="false"`, used only by the privilege
-check. It is the one install-time permission prompt a maker sees, and the control
-degrades rather than failing where the host has none. No `WebAPI` — the handler
-already has `Xrm.WebApi` and the user's own context.
+One `<uses-feature>`: `Utility`, `required="false"`, used by the privilege check
+and — since 0.2.0 — for the table's entity set when a bound action is called
+(with an `EntityDefinitions` fallback). It is the one install-time permission
+prompt a maker sees, and the control degrades rather than failing where the host
+has none. No `WebAPI`: `context.webAPI` cannot call an action, so the call is a
+same-origin POST the session cookie authorises.
 
 ## On the hub
 

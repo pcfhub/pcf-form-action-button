@@ -6,9 +6,12 @@ order: 3
 
 # Model-driven apps
 
-This control has one job: turn a press into something your form script can act
-on. It does that three ways, and it does all three at once, because each one is
-missing on some host or in some setup.
+This control has one job: turn a press into something that acts on it. Since
+0.2.0 that can be **a Dataverse action the button calls itself**, so a flow or
+a plug-in does the work with no form script at all — see
+[Call an action](#call-an-action-no-script). Without one, the press reaches your
+form script three ways, all at once, because each one is missing on some host or
+in some setup.
 
 | | Channel | You write | The control needs |
 | --- | --- | --- | --- |
@@ -25,6 +28,105 @@ feature. Everything on this page follows their published contract, but a preview
 API can change. If you are shipping something you cannot afford to have break,
 handle channel 2 as well — it is three extra lines and it is a stable API.
 ::
+
+## Call an action, no script
+
+Fill in **Action name** and every press that commits calls that Dataverse
+action — your own Custom API, or one of the platform's messages — after the
+event and the outputs. Leave it empty and the button is exactly what it was in
+0.1.0.
+
+| Property | What to put there |
+| --- | --- |
+| **Action name** | The action's unique name, exactly as written: the server is case-sensitive, and `contoso_Approve` is not `contoso_approve`. |
+| **Action binding** | **Bound to this record** (the default) calls it on the record the form shows. **Unbound** calls it on its own. |
+| **Action parameters** | Optional. The parameters as JSON — `{"Reason": "From the form"}` — or the name of a web resource holding them, because a form keeps only 100 characters here. `{id}` anywhere in text becomes the record's id; a value of exactly `"{record}"` becomes a reference to the record. |
+| **Result property** | Optional. A response property of the action; its value is what the button says afterwards. |
+
+While the call runs the button is busy — a spinner, and *Running…* underneath.
+Then it says how it went:
+
+- the **result property's** value, when you named one and the action returned it;
+- **Sent.** when the action has no response properties (it answers with nothing,
+  which is what an action that only triggers a flow does);
+- **Done.** for any other success;
+- the **server's own sentence** for a refusal, in red — and, when the name is what
+  it could not find, a reminder that names are case-sensitive and that bound and
+  unbound are addressed differently.
+
+A bound action needs a saved record. On a new one the button is off and says
+*Save the record first.*; it comes on by itself after the first save, without a
+reload. An unbound action whose parameters mention `{id}` or `{record}` waits
+the same way.
+
+### Running a flow from the button
+
+Power Automate's Dataverse trigger **When an action is performed** runs a flow
+whenever a Dataverse action runs. Point the button at one:
+
+1. **Create a Custom API** in your solution — a message with nothing behind it
+   is enough. Set **Binding type** to *Entity* and **Bound entity logical name**
+   to your table (or *Global* for unbound), **Is function** to *No*, and
+   **Allowed custom processing step type** to *Async only*. Add request
+   parameters only if the flow needs values from the button.
+2. **Catalog it.** The trigger only lists actions that are in a **catalog** and
+   a **category** under it: create both, then a **catalog assignment** linking
+   the category to your Custom API. (Learn: *Catalog and CatalogAssignment
+   tables*.)
+3. **Build the flow** with **When an action is performed**: your catalog, your
+   category, the table (or *(none)* for unbound) and the action.
+4. **Put the action's unique name in Action name**, and pick the binding.
+
+The button says **Sent.** as soon as Dataverse accepts the call — the flow runs
+after that, on its own, and the button cannot see how it went.
+
+::callout{type=warning}
+**A bound Custom API cannot have a parameter named `Target`.** Dataverse refuses
+to create one (*Custom API bound to an entity cannot use the reserved name
+'Target'*) because the bound record already is the action's `Target`. You do not
+need to pass the record to a bound action at all; use another name for anything
+else.
+::
+
+### The two outputs, and refreshing the form afterwards
+
+| Output | Holds |
+| --- | --- |
+| **Action status** | `3|ok` or `3|failed` — the press it reports and how the call went, written when the answer arrives. The number is there so two calls that both succeed are still two changes. |
+| **Action result** | The result property's value from the last call, or empty. |
+
+A plug-in behind the action can change the record, and the form will not show
+it until it re-reads. Refresh it when the call reports back — measured on a form:
+the new value appears in about a quarter of a second, the form stays clean, and
+the button is not reloaded:
+
+```javascript
+this.onLoad = function (executionContext) {
+    var formContext = executionContext.getFormContext();
+    var control = formContext.getControl("contoso_actionanchor");
+
+    control.addOnOutputChange(function () {
+        var outputs = control.getOutputs();
+        var status = outputs["contoso_actionanchor.fieldControl.actionStatus"];
+
+        if (status && /\|ok$/.test(status.value)) {
+            formContext.data.refresh(false);
+        }
+    });
+};
+```
+
+`refresh(false)` on a form with unsaved changes asks the user about them first,
+so save before calling an action that changes the record, or refresh only when
+`formContext.data.entity.getIsDirty()` is false.
+
+### With a script as well
+
+The action and channel 1 work together. Your `onAction` handler runs first, and
+`payload.preventDefault()` stops the call as well as the outputs — a check that
+says no before anything is sent. `setBusy()` and `setResult()` do not apply to a
+button with an action: the call shows its own progress and result, so the
+control ignores them and says so in the console.
 
 ## Channel 1 — the `onAction` event
 
@@ -176,12 +278,24 @@ The control writes two outputs on every press that commits. A form script reads
 them with the standard Client API, no custom event involved:
 
 ```javascript
-control.addOnOutputChange(function (executionContext) {
-    var outputs = executionContext.getEventSource().getOutputs();
+var control = formContext.getControl("contoso_actionanchor");
 
-    console.log(outputs.pressCount.value, outputs.lastAction.value);
+control.addOnOutputChange(function () {
+    var outputs = control.getOutputs();
+
+    console.log(
+        outputs["contoso_actionanchor.fieldControl.pressCount"].value,
+        outputs["contoso_actionanchor.fieldControl.lastAction"].value
+    );
 });
 ```
+
+Two things in that are easy to get wrong, and the version of this page before
+0.2.0 got both. **Read the outputs from the control**, not from the handler's
+`executionContext.getEventSource()` — that is the *column*, which has no
+`getOutputs`. And **each output is keyed by the column and the control**,
+`"<column>.fieldControl.<output>"`, holding `{ type, value }`;
+`outputs.pressCount` is `undefined`.
 
 `Press count` exists precisely so this channel works twice. `OnOutputChange`
 fires on a **change**, not on a write — so two consecutive confirmed presses both
@@ -242,7 +356,7 @@ on hosts where there is no form, so the framework does not hand one over. That i
 the whole reason the three channels exist — your handler has `formContext`, and
 the control hands the press to your handler.
 
-It also never calls Dataverse. Your handler already has `Xrm.WebApi` and the
-user's own context; a control that made the call itself would need the `WebAPI`
-feature, which is an install-time permission prompt for something you can already
-do better.
+It calls Dataverse only when you name an action, and then only that action, as
+the user, on the organisation the form is on. Everything else — reading and
+writing records, saving, navigating — is your handler's, which already has
+`Xrm.WebApi` and the user's own context.
