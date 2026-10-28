@@ -772,9 +772,30 @@ export class FormActionButton implements ComponentFramework.StandardControl<IInp
             this.spinner.setAttribute('hidden', 'hidden');
         }
 
-        const enabled = this.hostInteractive && this.phase !== 'asking' && this.phase !== 'busy';
+        const working = this.phase === 'asking' || this.phase === 'busy';
+        const enabled = this.hostInteractive && !working;
 
-        this.button.disabled = !enabled;
+        /*
+         * **Working is `aria-disabled`, not `disabled`.** Measured on a form in
+         * 0.2.0's walkthrough (SPEC.md W8): a press made with Enter went to
+         * `BODY` the moment the button disabled itself for its call, and stayed
+         * there, so a keyboard user started again from the top of the page. A
+         * focused element that becomes `disabled` is blurred, and nothing gives
+         * focus back when it is enabled again. Kept focusable, the button still
+         * refuses the click — `onClick` returns on `asking` and `busy` — and
+         * says it is unavailable to a screen reader.
+         *
+         * A button that cannot be used at all — a read-only form, no privilege,
+         * an action that cannot be called here — is `disabled` proper: there is
+         * no press in flight to come back to.
+         */
+        this.button.disabled = !this.hostInteractive;
+
+        if (working && this.hostInteractive) {
+            this.button.setAttribute('aria-disabled', 'true');
+        } else {
+            this.button.removeAttribute('aria-disabled');
+        }
         /*
          * `aria-busy` on the button rather than the container: it is the button
          * that is unavailable, and a container marked busy takes the live region

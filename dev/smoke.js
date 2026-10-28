@@ -601,8 +601,8 @@ async function main() {
     );
 
     check(
-        'and disables the button while the dialog is open, so a second click cannot open a second one',
-        asked.button().disabled === true,
+        'and makes the button unavailable while the dialog is open — aria-disabled, still focusable (W8) — so a second click cannot open a second one',
+        asked.button().getAttribute('aria-disabled') === 'true' && asked.button().disabled === false,
     );
 
     asked.press();
@@ -783,8 +783,8 @@ async function main() {
     busy.press();
 
     check(
-        'setBusy() disables the button and marks it busy',
-        busy.button().disabled === true
+        'setBusy() makes the button unavailable but keeps it focusable (W8), and marks it busy',
+        busy.button().getAttribute('aria-disabled') === 'true' && busy.button().disabled === false
             && busy.container.classList.contains('FormActionButton--busy'),
         `disabled=${busy.button().disabled} / ${busy.container.className}`,
     );
@@ -839,7 +839,7 @@ async function main() {
 
     check(
         'and a re-render leaves the busy state and the announcement alone',
-        busy.button().disabled === true
+        busy.button().getAttribute('aria-disabled') === 'true' && busy.button().disabled === false
             && busy.container.classList.contains('FormActionButton--busy')
             && busy.status() === 'Creating the invoice…',
         `${busy.status()} / disabled=${busy.button().disabled}`,
@@ -1236,8 +1236,9 @@ async function main() {
         bound.press();
 
         check(
-            'a bound press is busy at once — spinner, aria-busy, "Running…" — and the caption stays',
-            bound.button().disabled === true && bound.button().getAttribute('aria-busy') === 'true'
+            'a bound press is busy at once — spinner, aria-busy, aria-disabled but focusable, "Running…" — and the caption stays',
+            bound.button().getAttribute('aria-disabled') === 'true' && bound.button().disabled === false
+                && bound.button().getAttribute('aria-busy') === 'true'
                 && bound.status() === 'resx:FormActionButton_Running' && bound.caption() === 'Submit',
             `${bound.status()} | ${bound.caption()}`,
         );

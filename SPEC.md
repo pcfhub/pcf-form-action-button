@@ -359,12 +359,68 @@ code does not depend on it — the control calls an action either way — so 0.2
 was written and the flow is the walkthrough's W1; the docs' flow section waits
 for it.
 
+## 0.2.0 walked on the form, and the fix it found (0.2.1)
+
+Imported over the probe on 2026-10-28, the same column and form; each
+configuration bound with `ppdev form control bind --replace`, published, the
+form's caches cleared before reloading. Clicks were real pointer clicks or real
+key presses through the browser, not `element.click()`, except where noted.
+
+- **W2 — a bound call with both tokens.** `pcfhub_FabProbe`, parameters
+  `{"Note":"from the form, {id}","Record":"{record}"}`: the POST to
+  `accounts(<id>)/Microsoft.Dynamics.CRM.pcfhub_FabProbe` answered **204**; the
+  button said *Sent.*; `actionStatus` `1|ok`, `actionResult` `""`; the form
+  stayed clean. The server accepting `Record` is the proof the reference was
+  typed — untyped is a 400 (pcf-row-commands P3).
+- **W3 — a real response property, through a confirmation (W6).** An unbound
+  platform message with an answer and no side effect:
+  `InitializeFileBlocksDownload`, parameters
+  `{"Target":"{record}","FileAttributeName":"cll_smallfile"}`, result property
+  `FileName`, on a throwaway account holding a small text file. The platform's
+  dialog opened with the configured title and button; confirmed, the POST
+  answered **200** and the button said **`fab-w3-note.txt`** — the file's name —
+  with `actionResult` the same and `lastAction` `confirm`.
+- **W4 — a name in the wrong case.** `pcfhub_fabprobe`: *Resource not found for
+  the segment 'Microsoft.Dynamics.CRM.pcfhub_fabprobe'. Check the action's name,
+  pcfhub_fabprobe, and whether it is bound: names are case-sensitive.* in red;
+  `actionStatus` `1|failed`.
+- **W5 — a new record.** Unbound with `{record}` in its parameters: off, with
+  *Save the record first.*; after the first save the same instance came on and
+  the sentence cleared, no reload (P1 again, now through the feature).
+- **W6 — confirm by keyboard.** Enter on the focused button opened the dialog
+  with focus on its *Send*; Enter there confirmed, the call ran, and **focus
+  came back to the button**.
+- **W7 — light, dark (`themeOption=darkmode`) and a 375 px phone width.**
+  *Sent.* sits under the button in both themes; at 375 px the button is 329 px
+  wide with nothing overflowing. Right-to-left is unchanged by 0.2.0 (the
+  status line is the same element 0.1.0 drew) and was not walked again.
+- **W8 — keyboard only, and the defect.** Enter on the focused button called
+  the action — and **focus went to `BODY` and stayed there.** 0.2.0 set
+  `disabled` while the call ran; a focused element that becomes disabled is
+  blurred, and nothing gives focus back. 0.1.0 had the same fault in
+  `setBusy()` and while its dialog was open, unseen because it had never been
+  pressed with a keyboard on a form. **0.2.1** keeps a working button focusable —
+  `aria-disabled="true"`, the click already refused by phase in `onClick` — and
+  keeps `disabled` proper for a button that cannot be used at all. Walked again
+  on 0.2.1: Enter, the call, and focus still on the button.
+- **The docs' own snippets, from a real On Load library** (a throwaway web
+  resource wired with `ppdev form handler add`, removed after): channel 1's
+  `addEventHandler("onAction", …)` registered at load and fired with the
+  payload's functions; the refresh snippet read
+  `getOutputs()["cll_actionsignal.fieldControl.actionStatus"]`, saw `1|ok`, and
+  `refresh(false)` resolved with the form clean. This closes 0.1.0's *Not
+  verified* "from an On Load library".
+- **And the platform coalesces output changes.** The press's own
+  `notifyOutputChanged()` and the answer's, ~0.3 s apart, reached that handler
+  as **one** `OnOutputChange` carrying the final values (`1|ok`). Two presses
+  seconds apart were two (E3). A script reads the outputs it gets, not a count
+  of events.
+
 ## Not verified
 
-**That `addEventHandler("onAction", fn)` registered from a form's On Load
-library behaves as E1 found it from the console.** The console's `Xrm.Page` is
-the same form; the On Load route adds the library and the execution context,
-and the docs' snippet is that route.
+**P5–P7: the flow.** Whether *When an action is performed* runs after the
+control's call, how long after, and what its trigger body carries. The control's
+call is measured (W2, P4); the flow on the other side of it is not, yet.
 
 **That a `writeSignal` write fires the bound column's `OnChange`**, and that
 `setSubmitMode("never")` keeps it out of the save.

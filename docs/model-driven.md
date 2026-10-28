@@ -95,6 +95,11 @@ else.
 | **Action status** | `3|ok` or `3|failed` — the press it reports and how the call went, written when the answer arrives. The number is there so two calls that both succeed are still two changes. |
 | **Action result** | The result property's value from the last call, or empty. |
 
+The press writes **Press count** at once and **Action status** when the answer
+arrives, a fraction of a second later — and the form may hand your
+`addOnOutputChange` handler both in **one** event, carrying the final values.
+Read the outputs you are given rather than counting events.
+
 A plug-in behind the action can change the record, and the form will not show
 it until it re-reads. Refresh it when the call reports back — measured on a form:
 the new value appears in about a quarter of a second, the form stays clean, and
@@ -218,8 +223,10 @@ Decide before you `await`. If you cannot decide without asking the server, use
 
 #### `setBusy(message)`
 
-Disables the button, shows a spinner and says what is happening. Call it for
-anything that takes a round trip.
+Makes the button unavailable, shows a spinner and says what is happening. Call
+it for anything that takes a round trip. The button keeps keyboard focus while
+it is busy — it ignores presses rather than being disabled — so a keyboard user
+is still on it when the result arrives.
 
 `message` is optional; leave it out for a localised "Working…".
 
