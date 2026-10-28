@@ -1,4 +1,5 @@
 import { IInputs, IOutputs } from './generated/ManifestTypes';
+import { probeDestroy, probeInit, probeView } from './probe'; // PROBE 0.1.9 — delete before 0.2.0
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -295,6 +296,7 @@ export class FormActionButton implements ComponentFramework.StandardControl<IInp
     private writeSignal = false;
     private entityTypeName: string | undefined;
     private entityId: string | undefined;
+    private probeInstance = 0; // PROBE 0.1.9
 
     public init(
         context: ComponentFramework.Context<IInputs>,
@@ -358,11 +360,14 @@ export class FormActionButton implements ComponentFramework.StandardControl<IInp
 
         this.container.append(this.button, this.status);
 
+        this.probeInstance = probeInit(); // PROBE 0.1.9
         this.render(context);
+        probeView(this.probeInstance, context as unknown as ComponentFramework.Context<unknown>); // PROBE 0.1.9
     }
 
     public updateView(context: ComponentFramework.Context<IInputs>): void {
         this.render(context);
+        probeView(this.probeInstance, context as unknown as ComponentFramework.Context<unknown>); // PROBE 0.1.9
     }
 
     /**
@@ -396,6 +401,7 @@ export class FormActionButton implements ComponentFramework.StandardControl<IInp
          * nothing stops it calling them.
          */
         this.destroyed = true;
+        probeDestroy(this.probeInstance); // PROBE 0.1.9
         this.clearConfirmTimer();
         this.clearBusyTimer();
 

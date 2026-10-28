@@ -1,6 +1,6 @@
 {
   "name": "pcf-form-action-button",
-  "version": "0.1.0",
+  "version": "0.1.9",
   "description": "A model-driven form button that raises an event a form script can handle, confirm and answer.",
   "license": "MIT",
   "private": true,
