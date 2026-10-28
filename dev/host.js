@@ -77,6 +77,17 @@
         FormActionButton_Failed: 'The action did not complete.',
         FormActionButton_Stalled: 'The action never reported back, so the button was released.',
         FormActionButton_NoPrivilege: 'You do not have permission to do this.',
+        FormActionButton_Running: 'Running…',
+        FormActionButton_Sent: 'Sent.',
+        FormActionButton_SaveFirst: 'Save the record first.',
+        FormActionButton_NoOrganisation: 'This button calls a Dataverse action, and there is no Dataverse here to call.',
+        FormActionButton_NoAddress: 'The address of this table\'s records could not be read.',
+        FormActionButton_BadName: '"{0}" is not an action name the Web API takes.',
+        FormActionButton_BadResult: '"{0}" is not a response property name.',
+        FormActionButton_BadParameters: 'The action\'s parameters could not be read: {0}',
+        FormActionButton_ParametersMissing: 'The web resource {0}, which holds the action\'s parameters, was not found.',
+        FormActionButton_ParametersUnreadable: 'The web resource {0}, which holds the action\'s parameters, could not be read.',
+        FormActionButton_ActionNameHint: 'Check the action\'s name, {0}, and whether it is bound: names are case-sensitive.',
     };
 
     /**
