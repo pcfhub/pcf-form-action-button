@@ -462,3 +462,14 @@ only here:
 And one correction to *Navigation and dialogs*: the exception to *Confirm, then
 destroy*, which is that an inline fallback is right when the action itself is
 host-independent.
+
+From 0.2.x (skill 1.2.0, 2026-10-28):
+
+- `web-api-messages.md`, *From a form: a button on the record* — P1–P8; the
+  reserved `Target` on a bound Custom API; the catalog a flow trigger needs;
+  `_template`'s `lib/web-api-action`.
+- `navigation-and-events.md` — channel 1 **is** delivered on a field control
+  (E1–E3), and channel 2 is read off the control by
+  `"<column>.fieldControl.<output>"` keys, with coalesced change events.
+- `accessibility.md`, *A button that is working keeps focus* — W8's defect and
+  the `aria-disabled` rule.
