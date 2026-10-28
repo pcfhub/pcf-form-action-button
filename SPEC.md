@@ -356,8 +356,7 @@ verified* as it stood):
 *When an action is performed* runs after the control's call, how long after,
 and what its trigger body carries (the bound record's id, each parameter). The
 code does not depend on it — the control calls an action either way — so 0.2.0
-was written and the flow is the walkthrough's W1; the docs' flow section waits
-for it.
+was written and the flow became the walkthrough's W1, measured on 0.2.1 below.
 
 ## 0.2.0 walked on the form, and the fix it found (0.2.1)
 
@@ -416,11 +415,39 @@ key presses through the browser, not `element.click()`, except where noted.
   seconds apart were two (E3). A script reads the outputs it gets, not a count
   of events.
 
-## Not verified
+- **W1 — the flow (P5, P6, P7), on 0.2.1.** Two throwaway flows, made through
+  the Flow API on the user's own Dataverse connection (the Power Automate portal
+  would not load in the browser pane): *When an action is performed* and a
+  Compose of `triggerBody()`. Catalog `pcfhub_FabProbe`, category
+  `pcfhub_FabProbeCategory`; one on table `account` and `pcfhub_FabProbe`, one
+  on *(none)* — stored as `entityname` **`none`** — and
+  `pcfhub_FabProbeGlobal`. Turning each on wrote one `callbackregistrations`
+  row (`entityname`, `sdkmessagename`, `scope` 4, `version` 3).
+  - **P5 — it runs, and what it carries.** Three presses of the button bound to
+    `pcfhub_FabProbe`, three runs, all *Succeeded*. The trigger body:
+    `InputParameters` holding each parameter by name (`Note` the text with
+    `{id}` filled; `Record` as `{Id, LogicalName, Name: null, KeyAttributes:
+    [], RowVersion: null}`) **and `Target`, the bound record, as the same kind
+    of reference** — the name P4b found a bound API may not use for itself;
+    `OutputParameters` `{}`; `ItemInternalId` the record's id; `SdkMessage` the
+    action's name; `RunAsSystemUserId` the presser (equal to `WhoAmI` — the
+    only user here, who also owns the flow, so the two are not told apart). A
+    second Compose read back `triggerBody()?['InputParameters']?['Note']`,
+    `triggerOutputs()?['body/InputParameters/Note']`,
+    `triggerBody()?['InputParameters']?['Target']?['Id']` and
+    `triggerOutputs()?['body/ItemInternalId']`, all right.
+  - **P6 — unbound.** `POST pcfhub_FabProbeGlobal` from the form page — the
+    request the control makes when unbound, sent with the page's `fetch` rather
+    than through a rebind — ran the unbound flow. Same body without `Target`
+    or `ItemInternalId`.
+  - **P7 — the call does not wait.** Each call answered 204 in 0.32–0.62 s; on
+    the server's clock the run started **0.4 s, 1.0 s and 5.1 s** after the
+    answer (the browser's clock ran 1.3 s ahead, measured off the tick of the
+    `Date` header). *Sent.* is the right word: when the button speaks the flow
+    has not run, and nothing of its outcome reaches the button — so the docs'
+    refresh snippet is for a plug-in's writes, not a flow's.
 
-**P5–P7: the flow.** Whether *When an action is performed* runs after the
-control's call, how long after, and what its trigger body carries. The control's
-call is measured (W2, P4); the flow on the other side of it is not, yet.
+## Not verified
 
 **That a `writeSignal` write fires the bound column's `OnChange`**, and that
 `setSubmitMode("never")` keeps it out of the save.
@@ -466,8 +493,8 @@ host-independent.
 From 0.2.x (skill 1.2.0, 2026-10-28):
 
 - `web-api-messages.md`, *From a form: a button on the record* — P1–P8; the
-  reserved `Target` on a bound Custom API; the catalog a flow trigger needs;
-  `_template`'s `lib/web-api-action`.
+  reserved `Target` on a bound Custom API; the catalog a flow trigger needs and
+  what its body carries (W1); `_template`'s `lib/web-api-action`.
 - `navigation-and-events.md` — channel 1 **is** delivered on a field control
   (E1–E3), and channel 2 is read off the control by
   `"<column>.fieldControl.<output>"` keys, with coalesced change events.

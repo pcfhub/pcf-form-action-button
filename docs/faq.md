@@ -84,8 +84,9 @@ returned.
 ## Creating my Custom API failed on a parameter called `Target`.
 
 A bound Custom API cannot have one: the record it is bound to already is its
-`Target`. The flow gets the record from the trigger, so you do not need to pass
-it; call any other parameter something else.
+`Target`. The flow gets the record from the trigger — as
+`InputParameters.Target` — so you do not need to pass it; call any other
+parameter something else.
 
 ## Does it save the record?
 

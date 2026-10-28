@@ -78,7 +78,40 @@ whenever a Dataverse action runs. Point the button at one:
 4. **Put the action's unique name in Action name**, and pick the binding.
 
 The button says **Sent.** as soon as Dataverse accepts the call — the flow runs
-after that, on its own, and the button cannot see how it went.
+after that, on its own, and the button cannot see how it went. Measured on a
+form: the call answered in about half a second, and the flow started between
+half a second and five seconds after that.
+
+**What the flow receives.** The trigger's body, from a press of a button bound
+to an account, with a `Note` text parameter and a `Record` reference:
+
+```json
+{
+  "InputParameters": {
+    "Note": "from the form, 7de84297-…",
+    "Record": { "Id": "7de84297-…", "LogicalName": "account", "Name": null, "KeyAttributes": [], "RowVersion": null },
+    "Target": { "Id": "7de84297-…", "LogicalName": "account", "Name": null, "KeyAttributes": [], "RowVersion": null }
+  },
+  "OutputParameters": {},
+  "ItemInternalId": "7de84297-…",
+  "SdkMessage": "contoso_NotifyTeam",
+  "RunAsSystemUserId": "eea5fa1a-…"
+}
+```
+
+- Each parameter is under `InputParameters` by its own name — in the designer's
+  dynamic content they are listed as *ActionInputs …*. In an expression:
+  `triggerBody()?['InputParameters']?['Note']`.
+- **The record the button sits on is `InputParameters.Target`** on a bound
+  action, so the flow has it without a parameter:
+  `triggerBody()?['InputParameters']?['Target']?['Id']`, or
+  `triggerOutputs()?['body/ItemInternalId']`. An unbound action has neither.
+- `RunAsSystemUserId` is the user who pressed — use it with *Get a row by ID* on
+  **Users** to address them.
+
+A flow's writes are not on the form when the button says *Sent.* — the flow has
+not run yet. Refreshing on **Action status** (below) shows what a plug-in did,
+not what a flow will do; have the flow tell the user, or let them refresh.
 
 ::callout{type=warning}
 **A bound Custom API cannot have a parameter named `Target`.** Dataverse refuses

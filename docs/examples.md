@@ -174,8 +174,10 @@ Action binding   Bound to this record
 
 The flow's trigger is **When an action is performed** — your catalog and
 category, table *Invoice*, action *contoso_SendToFinance*. The press asks, then
-calls the action; the button says *Sent.*, and the flow runs on its own. The
-set-up, including the catalog, is in
+calls the action; the button says *Sent.*, and the flow runs on its own. In the
+flow, the invoice's id is `triggerBody()?['InputParameters']?['Target']?['Id']`
+and the user who pressed is `triggerBody()?['RunAsSystemUserId']`. The set-up,
+including the catalog, is in
 [Model-driven apps](model-driven#running-a-flow-from-the-button).
 
 ## Pass a value, and show what came back
